@@ -1,0 +1,76 @@
+---
+title: "API overview"
+description: "SIFA's API surface and authentication model"
+---
+
+<Note>
+  SIFA is a server-rendered Django web application, not a REST API service. Nearly all functionality is delivered through HTML views rendered on the server and accessed via a browser. There is a single JSON endpoint, used internally for medication autocomplete.
+</Note>
+
+## Authentication
+
+All routes — including the one JSON endpoint — require an active Django session. Users must log in at `/auth/login/` using their SIFA credentials. There is no public API key system, no token-based authentication, and no OAuth flow.
+
+Once authenticated, the session cookie is attached automatically to every request by the browser. Tools that call the API programmatically (e.g. `curl`) must supply the `sessionid` cookie obtained after a successful login.
+
+## The JSON endpoint
+
+SIFA exposes one machine-readable endpoint:
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/productos/suggest/` | Medication autocomplete suggestions |
+
+All other paths return HTML pages. See [Drug suggestion API](/api/products-suggest) for full documentation of this endpoint.
+
+## All application routes
+
+The table below lists every URL pattern in SIFA. Routes marked **Auth required** redirect unauthenticated users to the login page. Role restrictions apply on top of authentication.
+
+| Method | Path | Description | Access |
+|--------|------|-------------|--------|
+| `GET` | `/` | Public home page | Public |
+| `GET` | `/dashboard/` | Main dashboard | All authenticated staff |
+| `GET` | `/residentes/` | Resident list with search and filters | Doctor, TENS, Admin |
+| `POST` | `/residentes/nuevo/` | Create a new resident | Admin only |
+| `GET` | `/residentes/<id>/` | Resident detail and treatment history | Doctor, TENS, Admin |
+| `POST` | `/residentes/<id>/eliminar/` | Deactivate a resident (soft delete) | Admin only |
+| `POST` | `/recetas/nueva/<residente_id>/` | Create a prescription for a resident | Doctor, Admin |
+| `POST` | `/recetas/<receta_id>/eliminar/` | Delete a prescription | Doctor, Admin |
+| `POST` | `/orden/nueva/<receta_id>/` | Add a medication order to a prescription | Doctor, Admin |
+| `GET/POST` | `/orden/<id>/editar/` | Edit a medication order | Doctor, Admin |
+| `POST` | `/orden/<id>/eliminar/` | Delete a medication order | Doctor, Admin |
+| `POST` | `/orden/<id>/restock/` | Increment stock for a medication order | TENS, Admin |
+| `GET` | `/administracion/` | Today's medication administration schedule | All authenticated staff |
+| `POST` | `/administracion/quick/<admin_id>/` | Quick-mark a single administration event | All authenticated staff |
+| `POST` | `/administracion/grupo/` | Mark all events in a time slot | Cuidadora, Admin |
+| `POST` | `/administracion/marcar/<admin_id>/` | Detailed marking form for one event | Cuidadora, Admin |
+| `GET` | `/registro/<residente_id>/` | Monthly administration report (HTML) | Doctor, TENS, Admin |
+| `GET` | `/residentes/<id>/registro-mensual/pdf/` | Monthly report as downloadable PDF | Admin only |
+| `GET/POST` | `/asignaciones/` | Daily caregiver assignments | TENS, Admin |
+| `POST` | `/asignaciones/generar/` | Auto-generate assignments | TENS, Admin |
+| `POST` | `/asignaciones/toggle/` | Toggle assignment visibility mode | TENS, Admin |
+| `POST` | `/asignaciones/limpiar/` | Clear today's assignments | TENS, Admin |
+| `POST` | `/asignaciones/avisar-meds/` | Send medication reminder notifications | TENS, Admin |
+| `GET` | `/medicamentos/` | Medication catalog list | Admin only |
+| `POST` | `/medicamentos/nuevo/` | Create a medication in the catalog | Admin only |
+| `GET/POST` | `/medicamentos/<id>/editar/` | Edit a medication | Admin only |
+| `POST` | `/medicamentos/<id>/eliminar/` | Delete a medication | Admin only |
+| `GET` | `/users/` | Staff user list | Admin only |
+| `POST` | `/users/new/` | Create a staff user | Admin only |
+| `GET/POST` | `/users/<id>/edit/` | Edit a staff user | Admin only |
+| `POST` | `/users/<id>/password/` | Change a user's password | Admin only |
+| `POST` | `/users/<id>/delete/` | Delete a staff user | Admin only |
+| `GET/POST` | `/mi-perfil/` | View and edit the current user's profile | All authenticated staff |
+| `GET` | `/api/productos/suggest/` | Medication autocomplete (JSON) | All authenticated staff |
+| `POST` | `/auth/logout/` | Log out and clear session | All authenticated staff |
+
+## Django settings that affect the API
+
+The following `settings.py` keys control behavior of the suggest endpoint. They can be set per environment without code changes.
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `DRUG_SUGGEST_PROVIDER` | `HYBRID` | Default provider: `LOCAL`, `CIMA`, `RXNORM`, or `HYBRID` |
+| `DRUG_SUGGEST_LIMIT` | `10` | Maximum number of results returned per request |
+| `DRUG_SUGGEST_TIMEOUT` | `2` | Timeout in seconds for requests to external APIs |

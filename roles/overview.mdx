@@ -1,0 +1,87 @@
+---
+title: "User roles overview"
+description: "Understanding SIFA's role-based access control"
+---
+
+SIFA uses Django's built-in Groups system to enforce role-based access control across the application. Every authenticated user belongs to exactly one role group, and each view is protected by a decorator that checks group membership before allowing access.
+
+## The four roles
+
+| Role group | Spanish name | Typical user |
+|------------|-------------|---------------|
+| `ADMIN` | Enfermera | Lead nurse or head of care staff |
+| `DOCTOR` | Doctor | Prescribing physician |
+| `TENS` | TENS | Técnico en Enfermería de Nivel Superior |
+| `CUIDADORA` | Cuidadora | Caregiver / nursing aide |
+
+<Note>
+The `ADMIN` group represents the lead nurse (Enfermera), not a system administrator. Django superusers are treated as `ADMIN` automatically — the `is_admin()` helper checks `user.is_superuser` in addition to group membership.
+</Note>
+
+## Permission matrix
+
+The table below shows which features each role can access. A cell marked ✓ means access is granted; ✗ means access is denied and the user is redirected to the dashboard with an error message.
+
+| Feature | Admin | Doctor | TENS | Cuidadora |
+|---------|:-----:|:------:|:----:|:---------:|
+| Dashboard | ✓ | ✓ | ✓ | ✓ |
+| Residents list | ✓ | ✓ | ✓ | ✗ |
+| Resident detail | ✓ | ✓ | ✓ | ✗ |
+| Create resident | ✓ | ✗ | ✗ | ✗ |
+| Deactivate resident | ✓ | ✗ | ✗ | ✗ |
+| Create / delete prescriptions | ✓ | ✓ | ✗ | ✗ |
+| Create / edit / delete medication orders | ✓ | ✓ | ✗ | ✗ |
+| Administration list (today) | ✓ | ✓ | ✓ | ✓ (own residents only) |
+| Mark administrations | ✓ | ✗ | ✗ | ✓ |
+| Group-mark administrations | ✓ | ✗ | ✗ | ✓ |
+| Assignments management | ✓ | ✗ | ✓ | ✗ |
+| Medication restock | ✓ | ✗ | ✓ | ✗ |
+| Update stock on resident detail | ✓ | ✗ | ✗ | ✗ |
+| User management | ✓ | ✗ | ✗ | ✗ |
+| Medication catalog | ✓ | ✗ | ✗ | ✗ |
+| Monthly report (web) | ✓ | ✓ | ✓ | ✗ |
+| PDF export | ✓ | ✗ | ✗ | ✗ |
+
+<Tip>
+Cuidadoras see the administration list filtered to their assigned residents only. All other roles with access to that view see all residents.
+</Tip>
+
+## How roles are implemented
+
+Roles are stored as Django `Group` objects. The helper functions in `landing/roles.py` wrap group membership checks, and each view is protected by a decorator:
+
+| Decorator | Allowed roles |
+|-----------|---------------|
+| `admin_required` | ADMIN only |
+| `doctor_or_admin_required` | DOCTOR, ADMIN |
+| `tens_or_admin_required` | TENS, ADMIN |
+| `cuidadora_or_admin_required` | CUIDADORA, ADMIN |
+| `doctor_tens_or_admin_required` | DOCTOR, TENS, ADMIN |
+| `staff_view_required` | All four roles |
+
+When a user fails a role check, the decorator calls `_deny()`, which adds an error message and redirects to the `dashboard` URL. No HTTP 403 is returned — the user stays in the application.
+
+```python
+def _deny(request):
+    messages.error(request, "No tienes permisos para esta acción.")
+    return redirect("dashboard")
+```
+
+User accounts are created and role assignments are managed exclusively by the Admin role through the user management interface.
+
+## Role pages
+
+<CardGroup cols={2}>
+  <Card title="Admin (Enfermera)" icon="shield" href="/roles/admin">
+    Full system access for the lead nurse administrator
+  </Card>
+  <Card title="Doctor" icon="stethoscope" href="/roles/doctor">
+    Create and manage medical prescriptions
+  </Card>
+  <Card title="TENS" icon="clipboard-list" href="/roles/tens">
+    Manage caregiver assignments and medication restock
+  </Card>
+  <Card title="Cuidadora" icon="heart" href="/roles/cuidadora">
+    Mark daily medication administrations for assigned residents
+  </Card>
+</CardGroup>

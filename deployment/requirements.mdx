@@ -1,0 +1,60 @@
+---
+title: "Requirements"
+description: "System requirements for running SIFA"
+---
+
+## Server requirements
+
+| Component | Minimum | Recommended |
+|-----------|---------|-------------|
+| Python | 3.10 | 3.12+ |
+| RAM | 512 MB | 1 GB |
+| Disk space | 500 MB | 2 GB |
+| CPU | 1 core | 2 cores |
+
+SIFA uses **SQLite** as its database engine. SQLite ships with Python — no separate database server installation is required.
+
+## Python dependencies
+
+All dependencies are listed in `requirements.txt` and installed with `pip`.
+
+| Package | Version | Purpose |
+|---------|---------|---------|
+| Django | 5.2.8 | Web framework |
+| asgiref | 3.10.0 | ASGI compatibility layer |
+| Pillow | 12.0.0 | Image processing (resident photos) |
+| PyAutoGUI | 0.9.54 | Desktop automation utilities |
+| requests | 2.32.5 | HTTP client for external APIs |
+| sqlparse | 0.5.3 | SQL formatting (Django dependency) |
+| tzdata | 2025.2 | Timezone data |
+| numpy | 2.3.4 | Numerical operations |
+| python-dateutil | 2.9.0.post0 | Date parsing utilities |
+| cv | 1.0.0 | Computer vision utilities |
+| django-request | 1.7.1 | HTTP request logging |
+| certifi | 2025.10.5 | SSL certificate bundle |
+
+## Optional dependencies
+
+<Note>
+**WeasyPrint** is required for PDF export (monthly resident reports). It is imported with a `try/except` guard — if it is not installed, the PDF export feature is silently disabled rather than causing an error.
+
+WeasyPrint requires additional system libraries:
+- **Debian/Ubuntu**: `apt install libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz0b`
+- **macOS**: `brew install pango`
+- **Windows**: See the [WeasyPrint installation docs](https://doc.courtbouillon.org/weasyprint/stable/first_steps.html)
+
+After installing system libraries, run: `pip install weasyprint`
+</Note>
+
+<Note>
+**Telegram alerts** require a bot token and chat ID obtained from Telegram's BotFather. These are configured via environment variables — see [Configuration](/deployment/configuration) for details.
+</Note>
+
+## Android companion app
+
+To install the SIFA Android companion app you need one of the following:
+
+- **Android Studio** — includes the Android SDK and ADB tool
+- **ADB (Android Debug Bridge)** — standalone installation sufficient for sideloading the APK
+
+See [Android app](/deployment/android-app) for the full sideloading procedure.

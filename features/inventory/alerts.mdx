@@ -1,0 +1,88 @@
+---
+title: "Critical stock alerts"
+description: "Automatic Telegram notifications when medication stock runs low"
+---
+
+SIFA sends a Telegram message whenever a medication order's stock drops to or below its critical threshold. The alert fires automatically — no manual action is needed.
+
+## Trigger condition
+
+The helper `_check_alerta_stock(orden)` is called after every stock-changing operation. It evaluates:
+
+```python
+critico = (orden.stock_asignado or 0) <= (orden.stock_critico or 0)
+
+if critico and not orden.alerta_enviada:
+    # send alert
+elif not critico and orden.alerta_enviada:
+    # reset flag
+```
+
+An alert is sent **only** when both conditions are true:
+
+1. `stock_asignado <= stock_critico`
+2. `alerta_enviada` is `False`
+
+## Alert message format
+
+The Telegram message is an HTML-formatted string:
+
+```python
+msg = (
+    "⚠️ <b>Stock crítico</b>\n"
+    f"👤 Residente: {res.nombre_completo}\n"
+    f"💊 Medicamento: {orden.producto} · {orden.dosis}\n"
+    f"📦 Stock: {orden.stock_asignado} (crítico {orden.stock_critico})"
+)
+```
+
+Example rendered output:
+
+```
+⚠️ Stock crítico
+👤 Residente: Juan Pérez
+💊 Medicamento: Metformina 500 mg · 1 tableta
+📦 Stock: 2 (crítico 5)
+```
+
+## Duplicate prevention
+
+The `alerta_enviada` flag on `OrdenMedicamento` ensures that only one alert is sent per low-stock episode:
+
+| Event | `alerta_enviada` value |
+|---|---|
+| Alert sent successfully | Set to `True` |
+| Stock rises above `stock_critico` | Reset to `False` |
+| Alert send fails | Remains `False` (retried next time stock changes) |
+
+This means:
+
+- Marking ten doses in a row when stock is critical sends only **one** Telegram message.
+- Once stock is restocked above the threshold the flag resets, so a future drop will trigger a new alert.
+
+<Note>
+If the Telegram send fails (network error, wrong token, etc.), the flag is **not** set to `True`, so the system will retry on the next stock-changing operation.
+</Note>
+
+## When alerts are evaluated
+
+`_check_alerta_stock()` is called in these places:
+
+- After every quick mark (`admin_marcar_rapido`)
+- After every group mark (`admin_marcar_grupo`)
+- After every detailed mark (`admin_marcar`)
+- After a restock (`orden_restock`)
+- After updating stock from the resident detail page
+- After a new medication order (`orden_create`, `receta_create`) is saved
+
+## Configuration
+
+Set these values in your Django settings (or as environment variables):
+
+```python
+# settings.py
+TELEGRAM_BOT_TOKEN = "123456789:ABCdefGhIJKlmNoPQRsTUVwxyz"
+TELEGRAM_CHAT_ID   = "-1001234567890"
+```
+
+See [Telegram notifications](/features/notifications/telegram) for how to obtain these values.

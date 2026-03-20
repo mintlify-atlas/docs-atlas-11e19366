@@ -1,0 +1,52 @@
+---
+title: "Monthly administration report"
+description: "View and export the monthly medication record for a resident"
+---
+
+The monthly administration report gives a complete, calendar-style view of every medication event for a resident in a given month. It is the primary tool for reviewing treatment compliance and printing the official medication administration record.
+
+## Navigating to the report
+
+From a resident's detail page, click the **Registro mensual** button. This opens the report at:
+
+```
+/registro/<residente_id>/?year=YYYY&month=M
+```
+
+If `year` and `month` are omitted, the report defaults to the current month.
+
+## Month navigation
+
+Use the previous/next month controls on the report page. These update the `year` and `month` query parameters:
+
+- `?year=2025&month=3` — March 2025
+- `?year=2025&month=12` — December 2025
+
+Valid year range: 2000–2100. Values outside this range fall back to the current month.
+
+## Report layout
+
+The report renders as a table:
+
+- **Rows** — one row per unique combination of medication order and scheduled time (e.g. "Paracetamol 500 mg · 1 tableta — 8:00 am").
+- **Columns** — one column per calendar day in the selected month (1 through 28/29/30/31).
+- **Cells** — the administration status recorded for that (order, time, day) combination.
+
+### Cell symbols
+
+| Symbol | Meaning |
+|---|---|
+| `✓ (Name)` | Administered (DADA) — shows the first name of the caregiver |
+| `✕ (Name)` | Omitted (OMITIDA) — shows the first name of the person who recorded it |
+| `R` | Rejected by resident (RECHAZADA) |
+| `•` | Pending — not yet recorded |
+
+If more than one event was registered for the same cell (e.g. two entries for the same hour on the same day), the marks are joined with ` / `.
+
+## PDF export
+
+<Tip>
+The PDF export generates an A4 landscape document with the same table layout as the on-screen report. Click **Descargar PDF** on the report page. The file is named `registro_<residente_id>_<YYYY-MM>.pdf` and downloads directly to your browser. The PDF export is only available to users with the **ADMIN** role.
+</Tip>
+
+The PDF is produced server-side using WeasyPrint. If WeasyPrint is not installed on the server, the export endpoint returns an HTTP 500 error.

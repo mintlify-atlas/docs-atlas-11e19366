@@ -1,0 +1,133 @@
+---
+title: "Configuration"
+description: "Configuring SIFA settings and environment variables"
+---
+
+All Django settings live in `sifa_site/sifa_site/settings.py`. The most important settings for deployment are described below.
+
+## Security settings
+
+<Warning>
+The default `settings.py` contains a hardcoded `SECRET_KEY` and has `DEBUG = True`. Both **must** be changed before deploying to any server accessible over a network.
+</Warning>
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `SECRET_KEY` | `django-insecure-...` | Cryptographic signing key. Generate a new one with `python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"` |
+| `DEBUG` | `True` | Set to `False` in production. Disables detailed error pages and enables production-safe behaviour. |
+| `ALLOWED_HOSTS` | `[]` | List of hostnames/IPs the server will respond to. Example: `["sifa.example.com", "192.168.1.10"]` |
+| `CSRF_TRUSTED_ORIGINS` | _(not set)_ | Required when running behind HTTPS. Example: `["https://sifa.example.com"]` |
+
+### Example production values
+
+```python
+SECRET_KEY = 'your-new-random-secret-key'
+DEBUG = False
+ALLOWED_HOSTS = ['sifa.example.com']
+CSRF_TRUSTED_ORIGINS = ['https://sifa.example.com']
+```
+
+## Database
+
+SIFA uses SQLite by default. The database file is stored at `BASE_DIR / 'db.sqlite3'`.
+
+```python
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
+}
+```
+
+For a small nursing home (fewer than 100 residents), SQLite is sufficient. If you need to migrate to PostgreSQL in the future, replace the `ENGINE` and `NAME` values with the appropriate PostgreSQL connection settings.
+
+## Static files
+
+For production deployments you must collect static files before starting the server:
+
+```bash
+python manage.py collectstatic
+```
+
+This copies all static assets into the directory specified by `STATIC_ROOT`:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `STATIC_URL` | `'static/'` | URL prefix for static file requests |
+| `STATIC_ROOT` | `BASE_DIR / 'staticfiles'` | Directory where `collectstatic` writes files |
+| `STATICFILES_DIRS` | `[BASE_DIR / 'static']` | Additional directories to search for static files |
+
+## Timezone
+
+<Warning>
+The timezone setting is critical for correct medication scheduling. An incorrect timezone will cause medication administration times to appear at the wrong time of day.
+</Warning>
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `TIME_ZONE` | `'America/Santiago'` | Django's active timezone. Change this to match the physical location of the nursing home. |
+| `USE_TZ` | `True` | Keeps datetimes timezone-aware. Leave this enabled. |
+
+Example values for other regions: `'America/New_York'`, `'Europe/Madrid'`, `'UTC'`.
+
+## Telegram integration
+
+SIFA can send inventory shortage and medication alerts to a Telegram chat. Configure the bot using environment variables (recommended) or by editing `settings.py` directly.
+
+| Setting | Environment variable | Description |
+|---------|---------------------|-------------|
+| `TELEGRAM_BOT_TOKEN` | `TELEGRAM_BOT_TOKEN` | The token provided by BotFather when you create the bot. Do not include the `bot` prefix. |
+| `TELEGRAM_CHAT_ID` | `TELEGRAM_CHAT_ID` | The numeric ID of the chat or group the bot should send messages to. Negative IDs denote groups. |
+
+### Setting up a Telegram bot
+
+1. Open Telegram and start a conversation with [@BotFather](https://t.me/BotFather).
+2. Send `/newbot` and follow the prompts.
+3. Copy the token BotFather provides.
+4. Add the bot to the target group and obtain the group's chat ID.
+5. Set the environment variables before starting the server.
+
+```bash
+export TELEGRAM_BOT_TOKEN="1234567890:ABCdefGHIjklMNOpqrSTUvwxYZ"
+export TELEGRAM_CHAT_ID="-1001234567890"
+```
+
+## Drug suggestion API
+
+SIFA supports multiple backends for the medication autocomplete feature.
+
+| Setting | Default | Options | Description |
+|---------|---------|---------|-------------|
+| `DRUG_SUGGEST_PROVIDER` | `"HYBRID"` | `"LOCAL"`, `"CIMA"`, `"RXNORM"`, `"HYBRID"` | Which data source to query for drug name suggestions. `HYBRID` queries both CIMA and RxNorm and merges results. |
+| `DRUG_SUGGEST_LIMIT` | `10` | Integer | Maximum number of suggestions returned per query. |
+| `DRUG_SUGGEST_TIMEOUT` | `4` | Integer (seconds) | Timeout for external API requests. Increase this on slow connections; decrease it to fail faster. |
+
+## PDF export
+
+PDF generation (monthly resident reports) uses the WeasyPrint library. It is imported inside a `try/except` block:
+
+```python
+try:
+    from weasyprint import HTML
+except ImportError:
+    HTML = None
+```
+
+If WeasyPrint is not installed, the PDF export button will not be available. See [Requirements](/deployment/requirements) for system library prerequisites.
+
+## Application definition
+
+The core application is registered as `'landing'` in `INSTALLED_APPS`. Do not remove it.
+
+```python
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'landing',
+]
+```

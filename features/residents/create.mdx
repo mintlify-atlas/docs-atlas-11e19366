@@ -1,0 +1,45 @@
+---
+title: "Creating a resident"
+description: "Add a new resident to SIFA"
+---
+
+Only users with the **ADMIN** role can create new residents. After saving the resident record, SIFA redirects you directly to the prescription creation form so you can immediately add the first treatment.
+
+<Steps>
+  <Step title="Open the residents list">
+    In the sidebar, click **Residentes**. The list of all residents is displayed at `/residentes/`.
+  </Step>
+
+  <Step title="Click Nuevo residente">
+    Click the **Nuevo residente** button to open the creation form at `/residentes/nuevo/`.
+  </Step>
+
+  <Step title="Fill in the resident's details">
+    Complete the required fields:
+
+    | Field | Required | Notes |
+    |---|---|---|
+    | Nombre completo | Yes | Full name |
+    | RUT | Yes | Must be unique. Use the standard Chilean format, e.g. `12.345.678-9` |
+    | Fecha de nacimiento | No | Used to display age in the monthly report |
+    | Sexo | Yes | Masculino / Femenino / Otro/ND |
+    | Alergias | No | Free-text; document all known allergies here |
+    | Activo | Yes | Leave checked to create an active resident |
+  </Step>
+
+  <Step title="Save the resident">
+    Click **Guardar**. If all fields are valid, the record is created and SIFA redirects you to the prescription creation form (`/recetas/nueva/<residente_id>/`).
+
+    If any field fails validation, the form re-renders with inline error messages. The most common error is a duplicate RUT.
+  </Step>
+
+  <Step title="Add the first prescription">
+    You are now on the **Nueva receta** form. Fill in at least a start date and one medication order with at least one scheduled time, then click **Guardar receta**.
+
+    See [Creating a prescription](/features/prescriptions/create) for a detailed walkthrough of this step.
+  </Step>
+</Steps>
+
+<Note>
+If you save a resident and need to skip adding a prescription immediately, you can click **Cancelar** on the prescription form. The resident record has already been created and will appear in the list.
+</Note>

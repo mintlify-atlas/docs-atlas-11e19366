@@ -1,0 +1,94 @@
+---
+title: "Cuidadora"
+description: "Mark daily medication administrations for assigned residents"
+---
+
+The Cuidadora role is the frontline role in SIFA's daily medication workflow. Caregivers see only the residents assigned to them for the current day and are responsible for recording the outcome of each scheduled medication administration.
+
+## Capabilities
+
+### Dashboard
+
+When a Cuidadora logs in, the dashboard shows the count of today's pending administrations scoped to her assigned residents only. Critical stock alerts and the full resident count visible to other roles are not shown.
+
+### Administration list
+
+The core daily task for a Cuidadora is the administration list at `/administracion/`. The list is automatically filtered to show only the residents assigned to her for today by the TENS or Admin.
+
+For each scheduled event, the Cuidadora can see:
+
+- The resident's name.
+- The medication name, dose, and scheduled time.
+- The current status: **Pendiente**, **Dada**, **Omitida**, or **Rechazada**.
+
+### Marking administrations
+
+There are two ways to record an administration:
+
+**Quick-mark** — Click one of the state buttons directly on the list to change the status with a single action. This is the primary flow during medication rounds.
+
+**Detailed mark** — Follow the link to the `/administracion/marcar/<id>/` form for a single event. This uses the same states but provides a dedicated page.
+
+Valid administration states:
+
+| State | Meaning | Effect on stock |
+|-------|---------|----------------|
+| `DADA` | Medication administered | Decrements `stock_asignado` by 1 |
+| `OMITIDA` | Missed / not given | No stock change |
+| `RECHAZADA` | Resident refused | Decrements `stock_asignado` by 1 |
+| `PENDIENTE` | Not yet recorded | No stock change |
+
+<Note>
+Stock is decremented for both `DADA` and `RECHAZADA` because in both cases one dose has been prepared and removed from the assigned supply. If you change a marked event back to `PENDIENTE`, the stock is restored.
+</Note>
+
+### Group-mark
+
+The Cuidadora can use the group-mark action to set all events in a specific time slot to the same state at once. This is useful at the end of a medication round when all administrations in a block were completed successfully.
+
+### Telegram notifications
+
+Cuidadoras receive Telegram notifications in two situations:
+
+- **Assignment notification** — when the TENS generates the day's assignments, a message is sent to the Telegram group listing each caregiver's residents.
+- **Medications ready notification** — when the TENS or Admin sends the manual "medications ready" alert.
+
+<Tip>
+Cuidadoras do not need to be individually enrolled in the Telegram bot. Notifications go to the configured group channel. Ensure your facility's Telegram group is set up correctly in SIFA's settings.
+</Tip>
+
+## What Cuidadora cannot do
+
+| Action | Who can do it |
+|--------|---------------|
+| View residents not assigned to her | Admin, Doctor, TENS |
+| View resident detail pages | Admin, Doctor, TENS |
+| Create or modify prescriptions | Admin, Doctor |
+| Restock medication inventory | Admin, TENS |
+| Manage caregiver assignments | Admin, TENS |
+| Manage user accounts | Admin only |
+| View or export monthly reports | Admin, Doctor, TENS |
+
+<Warning>
+A Cuidadora who has no assignments for today will see an empty administration list. If the list appears empty, ask the TENS or Admin to generate assignments for the current day.
+</Warning>
+
+## Typical daily workflow
+
+<Steps>
+  <Step title="Receive the assignment notification">
+    When the TENS generates assignments, you receive a Telegram message listing your residents for today. Review the list before the medication round begins.
+  </Step>
+  <Step title="Receive the medications ready notification">
+    The TENS or Enfermera sends a Telegram notification when the medication trays are prepared and ready for pickup at the nursing station.
+  </Step>
+  <Step title="Open the administration list">
+    Log in to SIFA and go to **Administración**. You will see only your assigned residents grouped by time slot.
+  </Step>
+  <Step title="Work through the medication round">
+    For each resident and medication in the current time slot, administer the dose and use quick-mark to record **Dada**. If a resident refuses, mark **Rechazada**. If a dose is skipped for another reason, mark **Omitida**.
+  </Step>
+  <Step title="Use group-mark to close the time slot">
+    Once all residents in a time slot have been attended to, use group-mark to set the entire slot to **Dada** if appropriate, then correct any exceptions individually.
+  </Step>
+</Steps>

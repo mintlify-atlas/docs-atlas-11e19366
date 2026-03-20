@@ -1,0 +1,191 @@
+---
+title: "Architecture"
+description: "How SIFA is structured"
+---
+
+SIFA is a Django monolith designed for low-complexity, single-facility deployments in nursing homes. It intentionally avoids microservices: one Python process, one SQLite database, and an optional Android companion app cover all operational needs.
+
+## System overview
+
+```
+┌─────────────────────────────────┐
+│          Browser / PWA          │
+└────────────┬────────────────────┘
+             │ HTTP
+┌────────────▼────────────────────┐
+│      Django 5.2 (WSGI/ASGI)    │
+│  sifa_site project              │
+│  └── landing app               │
+├─────────────────────────────────┤
+│  db.sqlite3  (SQLite)          │
+└─────────────────────────────────┘
+             │ optional
+┌────────────▼────────────────────┐
+│    Android companion APK        │
+│  (read-only schedule viewer)    │
+└─────────────────────────────────┘
+```
+
+<Note>
+  SQLite is appropriate for single-facility deployments where concurrent write
+  load is low. For multi-tenant or high-concurrency environments, migrate to
+  PostgreSQL by changing `DATABASES` in `settings.py`.
+</Note>
+
+## Django app structure
+
+The project follows the standard two-layer Django layout:
+
+| Layer | Path | Responsibility |
+|---|---|---|
+| **Project** | `sifa_site/` | Global settings, root URL configuration, WSGI entry point |
+| **App** | `landing/` | All domain logic: models, views, forms, roles, notifications, templates |
+
+The root URL configuration (`sifa_site/urls.py`) mounts three things:
+- `/admin/` — Django admin interface
+- `/auth/login/` and `/auth/logout/` — Django built-in auth views
+- `/` — everything else, delegated to `landing/urls.py`
+
+## URL routing structure
+
+All application routes are defined in `landing/urls.py`. They are grouped by domain:
+
+| Route prefix | Description |
+|---|---|---|
+| `/` | Public landing page |
+| `/dashboard/` | Staff dashboard (all authenticated roles) |
+| `/residentes/` | Resident CRUD |
+| `/recetas/` | Prescription management |
+| `/orden/` | Medication order CRUD and restock |
+| `/administracion/` | Today's administration list and dose marking |
+| `/registro/` | Monthly administration records and PDF export |
+| `/asignaciones/` | Caregiver assignment management |
+| `/medicamentos/` | Drug catalog CRUD |
+| `/users/` | User and group management (ADMIN only) |
+| `/mi-perfil/` | Authenticated user's own profile |
+| `/api/productos/suggest/` | Drug autocomplete JSON endpoint |
+
+## Data model
+
+All models live in `landing/models.py`. The entity relationships flow from residents down to individual administration events:
+
+| Model | Key fields | Relationship |
+|---|---|---|
+| `Residente` | `nombre_completo`, `rut`, `fecha_nacimiento`, `sexo`, `alergias`, `activo` | Root entity — all clinical data is linked here |
+| `Producto` | `nombre`, `potencia`, `forma` | Shared drug catalog (independent of residents) |
+| `Receta` | `residente`, `medico`, `numero`, `inicio`, `fin`, `activa` | Prescription issued by a doctor for a resident |
+| `OrdenMedicamento` | `receta`, `producto`, `dosis`, `via`, `stock_asignado`, `stock_critico`, `alerta_enviada` | One medication line within a prescription |
+| `HoraProgramada` | `orden`, `hora`, `dia_semana` | Scheduled administration time(s) for a medication order; `dia_semana=NULL` means every day |
+| `Administracion` | `orden`, `residente`, `programada_para`, `estado`, `cantidad_administrada`, `realizada_por` | Actual administration event (PENDIENTE / DADA / OMITIDA / RECHAZADA) |
+| `DiaAsignacion` | `fecha`, `solo_asignados`, `cuidadoras` | Day-level flag: whether to show all residents or only assigned ones |
+| `Asignacion` | `fecha`, `cuidadora`, `residente` | Links one caregiver to one resident for a given day (unique per resident per day) |
+
+```
+Residente
+  └── Receta (medico → User)
+        └── OrdenMedicamento (producto → Producto)
+              ├── HoraProgramada
+              └── Administracion (realizada_por → User)
+
+DiaAsignacion (cuidadoras → User)
+Asignacion (cuidadora → User, residente → Residente)
+```
+
+## Role-based access control
+
+SIFA uses Django's built-in `auth.Group` model. Four groups must exist in the database:
+
+| Group | Typical user | Access level |
+|---|---|---|
+| `ADMIN` | Facility administrator / Django superuser | Full access to all views and user management |
+| `DOCTOR` | Attending physician | Can create and manage prescriptions and medication orders |
+| `TENS` | Técnico en Enfermería de Nivel Superior | Can view residents, prescriptions, and manage administration records |
+| `CUIDADORA` | Caregiver | Can view and mark today's assigned administration events |
+
+Access is enforced through decorator functions defined in `landing/roles.py`. Views are decorated before the URL resolver can call them:
+
+```python
+# landing/roles.py — decorator pattern
+def admin_required(view):
+    @wraps(view)
+    def _w(request, *a, **kw):
+        return view(request, *a, **kw) if is_admin(request.user) else _deny(request)
+    return _w
+
+def tens_or_admin_required(view): ...
+def cuidadora_or_admin_required(view): ...
+def doctor_or_admin_required(view): ...
+def doctor_tens_or_admin_required(view): ...
+def staff_view_required(view): ...  # any authenticated role
+```
+
+A denied request is never shown an HTTP 403 page; instead it redirects to `/dashboard/` with an error message, keeping the UI consistent for all users.
+
+<Note>
+  Superusers (`is_superuser=True`) are treated as ADMIN by every decorator regardless of
+  group membership. Assign a superuser to the `ADMIN` group anyway so the Django Admin
+  group filter UI stays consistent.
+</Note>
+
+## External integrations
+
+<CardGroup cols={2}>
+  <Card title="Telegram Bot API" icon="telegram">
+    SIFA sends low-stock alerts and caregiver notifications to a Telegram group.
+    Credentials are read from `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`
+    environment variables. The integration in `landing/notifications.py` attempts
+    HTTP POST first, then falls back to GET for network environments that block
+    form-data posts.
+  </Card>
+
+  <Card title="CIMA AEMPS API" icon="pills">
+    The Spanish Agency of Medicines (AEMPS) CIMA REST API is queried by the drug
+    autocomplete endpoint (`/api/productos/suggest/`) when
+    `DRUG_SUGGEST_PROVIDER` is set to `"CIMA"` or `"HYBRID"` in settings.
+    Results are merged with the local `Producto` catalog.
+  </Card>
+
+  <Card title="RxNorm API" icon="flask">
+    The US National Library of Medicine RxNorm API is the second remote source
+    for drug autocomplete, used when `DRUG_SUGGEST_PROVIDER` is `"RXNORM"` or
+    `"HYBRID"`. Both CIMA and RxNorm results are combined in hybrid mode,
+    subject to `DRUG_SUGGEST_LIMIT` and `DRUG_SUGGEST_TIMEOUT`.
+  </Card>
+
+  <Card title="WeasyPrint PDF" icon="file-pdf">
+    Monthly administration records can be exported as PDF via
+    `/residentes/<id>/registro-mensual/pdf/`. WeasyPrint renders an HTML
+    template server-side into a PDF byte stream. The dependency is optional;
+    SIFA detects its absence at startup and disables the export route gracefully.
+  </Card>
+</CardGroup>
+
+## Deployment architecture
+
+For a typical single-facility deployment:
+
+```
+ Internet
+    │
+    ▼
+[Reverse proxy — nginx or PythonAnywhere]
+    │
+    ▼
+[Gunicorn / WSGI — Django app]
+    │
+    ├── db.sqlite3 (local filesystem)
+    └── staticfiles/ (served by nginx)
+
+[Android APK] ─── local Wi-Fi ──► same Django instance
+```
+
+<Warning>
+  Before going to production, set `DEBUG = False`, provide a strong `SECRET_KEY`
+  via an environment variable, populate `ALLOWED_HOSTS`, and run
+  `python manage.py collectstatic`. The commented-out PythonAnywhere settings at
+  the bottom of `settings.py` show a minimal production configuration example.
+</Warning>
+
+The project was developed and tested with PythonAnywhere as the hosting target
+(`Vixoo.pythonanywhere.com`), which provides a zero-configuration WSGI host
+suitable for SQLite-backed Django apps.

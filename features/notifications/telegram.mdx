@@ -1,0 +1,129 @@
+---
+title: "Telegram notifications"
+description: "Configure the Telegram bot for real-time alerts"
+---
+
+SIFA uses a Telegram bot to push real-time alerts to your team. Two types of messages are sent:
+
+<CardGroup cols={2}>
+  <Card title="Critical stock alerts" icon="bell">
+    Sent automatically when a medication order's `stock_asignado` drops to or below `stock_critico`.
+  </Card>
+  <Card title="Medication reminders" icon="message-circle">
+    Sent manually by TENS or Admin from the Assignments page to notify caregivers that medications are ready for pickup.
+  </Card>
+</CardGroup>
+
+Assignment summaries are also sent automatically when assignments are generated. See [Caregiver assignments](/features/administration/assignments).
+
+## Setup
+
+<Steps>
+  <Step title="Create a bot with BotFather">
+    Open Telegram and search for **@BotFather**. Send the command:
+
+    ```
+    /newbot
+    ```
+
+    Follow the prompts to choose a name and username for your bot. BotFather will reply with your **bot token** — a string in the form:
+
+    ```
+    123456789:ABCdefGhIJKlmNoPQRsTUVwxyz
+    ```
+
+    Copy this token. Do **not** include the `bot` prefix when saving it to settings.
+  </Step>
+  <Step title="Get your chat ID">
+    Add your bot to the group or channel where you want alerts delivered, then send any message in that chat. Retrieve the chat ID by visiting:
+
+    ```
+    https://api.telegram.org/bot<YOUR_TOKEN>/getUpdates
+    ```
+
+    Look for the `"chat"` object in the response. The `"id"` field is your chat ID. Group and channel IDs are negative numbers (e.g. `-1001234567890`).
+  </Step>
+  <Step title="Add settings to Django">
+    Add both values to your `settings.py`:
+
+    ```python
+    TELEGRAM_BOT_TOKEN = "123456789:ABCdefGhIJKlmNoPQRsTUVwxyz"
+    TELEGRAM_CHAT_ID   = "-1001234567890"
+    ```
+
+    Alternatively, export them as environment variables:
+
+    ```bash
+    export TELEGRAM_BOT_TOKEN="123456789:ABCdefGhIJKlmNoPQRsTUVwxyz"
+    export TELEGRAM_CHAT_ID="-1001234567890"
+    ```
+
+    `send_telegram_message()` checks `settings` first and falls back to `os.getenv`.
+  </Step>
+  <Step title="Test from the Django shell">
+    ```bash
+    python manage.py shell
+    ```
+
+    ```python
+    from landing.notifications import send_telegram_message
+
+    ok, detail = send_telegram_message("SIFA test message", return_detail=True)
+    print(ok, detail)
+    ```
+
+    A successful result prints `True OK (POST)` or `True OK (GET)`.
+  </Step>
+</Steps>
+
+## The `send_telegram_message` function
+
+```python
+def send_telegram_message(text: str, *, return_detail: bool = False):
+```
+
+**Parameters**
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `text` | `str` | — | Message body. Supports Telegram HTML formatting. |
+| `return_detail` | `bool` | `False` | When `True`, returns `(ok: bool, detail: str)`. When `False`, returns only `bool`. |
+
+**Return value**
+
+- `True` / `(True, "OK (POST)")` — message delivered via POST.
+- `True` / `(True, "OK (GET)")` — message delivered via GET fallback.
+- `False` / `(False, "<reason>")` — delivery failed.
+
+**Delivery strategy**
+
+The function always tries an HTTP **POST** first (form-data to `https://api.telegram.org/bot<token>/sendMessage`). If the POST response is not successful, it falls back to an HTTP **GET** with the same parameters as query string. This two-step approach works around some network environments where POST bodies are blocked.
+
+```python
+# Simplified internal logic
+try:
+    r = requests.post(base, data=payload, timeout=8)
+    if r.ok and r.json().get("ok"):
+        return ret(True, "OK (POST)")
+    rg = requests.get(base, params=payload, timeout=8)
+    if rg.ok and rg.json().get("ok"):
+        return ret(True, "OK (GET)")
+except requests.exceptions.SSLError as e:
+    return ret(False, f"SSL error: {e}")
+except Exception as e:
+    return ret(False, f"Excepción: {e}")
+```
+
+All messages are sent with `parse_mode="HTML"` and `disable_web_page_preview=True`.
+
+## Troubleshooting
+
+| Symptom | Likely cause | Fix |
+|---|---|---|
+| `False "Falta TELEGRAM_BOT_TOKEN"` | Token not set | Add `TELEGRAM_BOT_TOKEN` to settings or env |
+| `False "No incluyas el prefijo 'bot'"` | Token starts with `bot` | Remove the `bot` prefix from the token value |
+| `False "Falta TELEGRAM_CHAT_ID"` | Chat ID not set | Add `TELEGRAM_CHAT_ID` to settings or env |
+| `False "SSL error: ..."` | TLS certificate issue on the server | Install/update CA certificates or use a proxy |
+| `False "POST 401:..."` | Invalid token | Regenerate the token with BotFather (`/revoke`) |
+| `False "POST 400:...chat not found"` | Wrong chat ID | Re-fetch chat ID via `getUpdates`; confirm bot is in the chat |
+| Message delivered but not visible | Bot was removed from the group | Re-add the bot and grant it send permissions |

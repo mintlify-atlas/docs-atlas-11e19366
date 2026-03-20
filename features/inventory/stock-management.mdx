@@ -1,0 +1,87 @@
+---
+title: "Stock management"
+description: "Track medication inventory per resident"
+---
+
+Every medication order (`OrdenMedicamento`) carries its own stock counters. SIFA tracks inventory at the order level so that each resident's supply is managed independently.
+
+## Stock fields
+
+| Field | Model field | Type | Description |
+|---|---|---|---|
+| Current stock | `stock_asignado` | `PositiveIntegerField` | Units currently on hand for this order |
+| Critical threshold | `stock_critico` | `PositiveIntegerField` | Units at or below which an alert is triggered |
+| Alert sent | `alerta_enviada` | `BooleanField` | Whether a Telegram alert has already been sent for the current low-stock episode |
+
+## Viewing stock
+
+**Resident detail page** — Each `OrdenMedicamento` row shows `stock_asignado` and `stock_critico` inline. Accessible to Doctor, TENS, and Admin roles.
+
+**Dashboard critical-stock widget** — The Admin dashboard queries:
+
+```python
+OrdenMedicamento.objects
+    .filter(activo=True, stock_asignado__lte=F('stock_critico'))
+    .order_by('receta__residente__nombre_completo')
+```
+
+This widget is only visible to Admin and TENS users; Cuidadoras do not see it.
+
+## Updating stock (Admin only)
+
+An Admin can set both `stock_asignado` and `stock_critico` directly from the resident detail page.
+
+**Endpoint:** `POST /residentes/<residente_id>/`
+
+Include these fields in the POST body:
+
+| Field | Description |
+|---|---|
+| `accion` | Must be `actualizar_stock` |
+| `orden_id` | ID of the `OrdenMedicamento` to update |
+| `stock_asignado` | New current stock value (integer ≥ 0) |
+| `stock_critico` | New critical threshold (integer ≥ 0) |
+
+After saving, the view calls `_check_alerta_stock()` to evaluate whether the new values cross the critical threshold.
+
+<Warning>
+Only Admin users can use the `actualizar_stock` action. The view returns `403 Forbidden` for all other roles.
+</Warning>
+
+## Restocking
+
+TENS and Admin users can add units to an order using the restock form.
+
+**Endpoint:** `POST /orden/<orden_id>/restock/`
+
+| Field | Description |
+|---|---|
+| `sumar` | Positive integer — number of units to add |
+
+The view adds `sumar` to the current `stock_asignado` and then calls `_check_alerta_stock()`. If the stock has risen above `stock_critico` the alert flag is reset so the system can alert again next time stock drops.
+
+```python
+# Example: add 10 units to order ID 42
+requests.post(
+    "/orden/42/restock/",
+    data={"csrfmiddlewaretoken": token, "sumar": 10},
+)
+```
+
+After a successful restock the view redirects to the dashboard.
+
+## Automatic stock depletion and restoration
+
+Stock changes are triggered automatically whenever an administration is marked. The helper `_ajustar_stock_por_transicion(evento, old_state, new_state)` applies these rules:
+
+| Transition | Effect on `stock_asignado` |
+|---|---|
+| → `DADA` or `RECHAZADA` | Decremented by 1 (minimum 0) |
+| `DADA` / `RECHAZADA` → `PENDIENTE` or `OMITIDA` | Incremented by 1 |
+| All other transitions | No change |
+
+<Tip>
+Stock is never decremented below zero. If `stock_asignado` is already 0 when a consuming state is applied, it stays at 0.
+</Tip>
+
+See [Marking administrations](/features/administration/marking) for the full marking workflow and [Critical stock alerts](/features/inventory/alerts) for the notification behaviour.

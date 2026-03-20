@@ -1,0 +1,202 @@
+---
+title: "Drug suggestion API"
+description: "Search for medications with autocomplete from multiple sources"
+---
+
+## Endpoint
+
+```
+GET /api/productos/suggest/
+```
+
+Returns a ranked list of medication suggestions matching a search query. Results can come from SIFA's local database, the Spanish AEMPS drug registry (CIMA), the US NIH RxNorm database, or a combination of all three.
+
+This endpoint is used internally by the prescription form to power the medication autocomplete field.
+
+## Authentication
+
+Requires an active Django session. The user must be logged in via `/auth/login/`. Unauthenticated requests receive a redirect to the login page, not a JSON error.
+
+<Note>
+  There is no token or API key authentication. If you are calling this endpoint from outside a browser (e.g. with `curl` or a script), you must first authenticate and pass the resulting `sessionid` cookie on every request.
+</Note>
+
+## Query parameters
+
+<ParamField query="q" type="string" required>
+  Search query string. Must be at least one character after stripping whitespace. An empty or whitespace-only value returns `{"results": []}` immediately without querying any source.
+</ParamField>
+
+<ParamField query="provider" type="string" default="HYBRID">
+  Controls which data source(s) to query. Accepted values:
+
+  - `LOCAL` — query only the SIFA local medication catalog (`Producto` table)
+  - `CIMA` — query only the AEMPS Spanish drug registry
+  - `RXNORM` — query only the NIH RxNorm database
+  - `HYBRID` — query LOCAL first, then CIMA if results are below the limit, then RxNorm if still below the limit
+
+  Falls back to the `DRUG_SUGGEST_PROVIDER` Django setting when not specified. Default setting value is `HYBRID`.
+</ParamField>
+
+## Response
+
+Always returns HTTP 200 with a JSON body.
+
+```json
+{
+  "results": [...]
+}
+```
+
+<ResponseField name="results" type="array">
+  List of medication suggestion objects, ordered by source priority and deduplicated by label. Maximum length is controlled by the `DRUG_SUGGEST_LIMIT` Django setting (default: 10).
+
+  <Expandable title="properties">
+    <ResponseField name="id" type="string | integer">
+      Identifier for the result. Type depends on the source:
+      - `integer` for local results (primary key of `Producto`)
+      - `"cima:<nregistro>"` for CIMA results
+      - `"cima-vmpp:<id>"` for CIMA fallback VMPP results
+      - `"rxnorm:<rxcui>"` for RxNorm results
+    </ResponseField>
+
+    <ResponseField name="label" type="string">
+      Display name for the autocomplete dropdown. Typically `nombre + potencia` for local results, or the registered name for external sources. Labels are deduplicated across sources; a label that already appears in the result set is skipped.
+    </ResponseField>
+
+    <ResponseField name="source" type="string">
+      Origin of the result. One of `"local"`, `"cima"`, or `"rxnorm"`.
+    </ResponseField>
+
+    <ResponseField name="nombre" type="string">
+      Medication name.
+    </ResponseField>
+
+    <ResponseField name="potencia" type="string">
+      Strength or potency (e.g. `"500 mg"`, `"10 mg/ml"`). Always present but may be an empty string for results from external sources.
+    </ResponseField>
+
+    <ResponseField name="forma" type="string">
+      Pharmaceutical form or presentation (e.g. `"tableta"`, `"jarabe"`). Always present but may be an empty string for results from external sources.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Provider behavior
+
+<Warning>
+  The CIMA and RxNorm providers make outbound HTTP requests to external services. If the network is unavailable or the remote service is slow, those providers are skipped silently and return no results. The timeout is configurable via the `DRUG_SUGGEST_TIMEOUT` Django setting (default: 2 seconds).
+</Warning>
+
+<Tabs>
+  <Tab title="LOCAL">
+    Queries the `Producto` table in the SIFA database using a case-insensitive contains match on both `nombre` and `potencia`:
+
+    ```python
+    Producto.objects.filter(
+        Q(nombre__icontains=q) | Q(potencia__icontains=q)
+    ).order_by('nombre', 'potencia')[:limit]
+    ```
+
+    Results always include `potencia` and `forma` values when stored in the database. The `id` field is the integer primary key of the `Producto` record.
+  </Tab>
+
+  <Tab title="CIMA">
+    Calls the AEMPS (Spain) CIMA REST API in two stages:
+
+    **Stage 1 — `/medicamentos` endpoint:**
+    ```
+    GET https://cima.aemps.es/cima/rest/medicamentos?nombre=<q>&autorizados=1&pagina=1
+    ```
+    Parses the `resultados` array from the response. Each item contributes one result with `id` set to `"cima:<nregistro>"`.
+
+    **Stage 2 — `/vmpp` fallback (only if stage 1 returns nothing):**
+    ```
+    GET https://cima.aemps.es/cima/rest/vmpp?nombre=<q>&pagina=1
+    ```
+    Used for clinical descriptions not found in the main registry. Results from this stage have `id` set to `"cima-vmpp:<id>"`.
+
+    Both stages return `potencia: ""` and `forma: ""` because the CIMA list endpoints do not include those fields.
+  </Tab>
+
+  <Tab title="RXNORM">
+    Calls the NIH NLM RxNav API:
+
+    ```
+    GET https://rxnav.nlm.nih.gov/REST/drugs.json?name=<q>
+    ```
+
+    Iterates over all `conceptGroup[].conceptProperties[]` entries in the response, collecting `name` and `rxcui`. The `id` field is set to `"rxnorm:<rxcui>"`.
+
+    `potencia` and `forma` are always empty strings for RxNorm results.
+  </Tab>
+
+  <Tab title="HYBRID">
+    The default mode. Runs providers in sequence and stops early once the result limit is reached:
+
+    1. Run **LOCAL** — collect up to `limit` results.
+    2. If `len(results) < limit`, run **CIMA** — fill remaining slots.
+    3. If `len(results) < limit`, run **RXNORM** — fill remaining slots.
+
+    Deduplication is applied globally across all providers by `label`. A medication name that appears in both the local database and an external source will only appear once (the local entry wins because it runs first).
+  </Tab>
+</Tabs>
+
+## Empty query
+
+When `q` is empty or contains only whitespace, the endpoint returns immediately without querying any source:
+
+```json
+{"results": []}
+```
+
+## Example
+
+**Request:**
+
+```bash
+curl -s \
+  --cookie "sessionid=<your-session-cookie>" \
+  "https://your-sifa-host/api/productos/suggest/?q=paracetamol&provider=HYBRID"
+```
+
+**Response:**
+
+```json
+{
+  "results": [
+    {
+      "id": 12,
+      "label": "Paracetamol 500 mg",
+      "source": "local",
+      "nombre": "Paracetamol",
+      "potencia": "500 mg",
+      "forma": "tableta"
+    },
+    {
+      "id": "cima:710336",
+      "label": "PARACETAMOL KERN PHARMA 650 MG COMPRIMIDOS EFG",
+      "source": "cima",
+      "nombre": "PARACETAMOL KERN PHARMA 650 MG COMPRIMIDOS EFG",
+      "potencia": "",
+      "forma": ""
+    },
+    {
+      "id": "rxnorm:161",
+      "label": "Acetaminophen",
+      "source": "rxnorm",
+      "nombre": "Acetaminophen",
+      "potencia": "",
+      "forma": ""
+    }
+  ]
+}
+```
+
+## Django settings reference
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `DRUG_SUGGEST_PROVIDER` | `HYBRID` | Default provider when `provider` parameter is not supplied |
+| `DRUG_SUGGEST_LIMIT` | `10` | Maximum number of results across all providers |
+| `DRUG_SUGGEST_TIMEOUT` | `2` | Timeout in seconds for each external API call |

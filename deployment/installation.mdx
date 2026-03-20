@@ -1,0 +1,137 @@
+---
+title: "Installation"
+description: "Step-by-step installation guide for SIFA"
+---
+
+<Warning>
+These instructions set up SIFA in **development mode** (`DEBUG=True`). Do not expose this configuration to the public internet. Before going live, read the [Configuration](/deployment/configuration) page and follow Django's [deployment checklist](https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/).
+</Warning>
+
+<Steps>
+
+<Step title="Check prerequisites">
+Verify that Python 3.10 or later is installed:
+
+```bash
+python --version
+```
+
+Verify `pip` and `git` are available:
+
+```bash
+pip --version
+git --version
+```
+</Step>
+
+<Step title="Download the repository">
+Clone the repository from GitHub:
+
+```bash
+git clone https://github.com/Vixoo88/Capstone_Moreno_Quintana.git
+cd Capstone_Moreno_Quintana
+```
+
+Alternatively, download and extract the ZIP archive from the GitHub repository page.
+</Step>
+
+<Step title="Create a virtual environment">
+Create and activate a Python virtual environment to isolate dependencies:
+
+```bash
+python -m venv .venv
+```
+
+Activate it:
+
+```bash
+# Linux / macOS
+source .venv/bin/activate
+
+# Windows (Command Prompt)
+.venv\Scripts\activate.bat
+
+# Windows (PowerShell)
+.venv\Scripts\Activate.ps1
+```
+</Step>
+
+<Step title="Install Python dependencies">
+Navigate to the project root (where `requirements.txt` lives) and install all dependencies:
+
+```bash
+cd "Fase 2/Evidencias Proyectos/sifa_site"
+pip install -r requirements.txt
+```
+</Step>
+
+<Step title="Run database migrations">
+Apply all Django migrations to create the SQLite database schema:
+
+```bash
+python manage.py migrate
+```
+
+This creates `db.sqlite3` in the `sifa_site/` directory.
+</Step>
+
+<Step title="Create a superuser">
+Create the initial administrator account:
+
+```bash
+python manage.py createsuperuser
+```
+
+Follow the prompts to set a username, email, and password.
+</Step>
+
+<Step title="Create role groups">
+SIFA uses four permission groups to control user access. Create them by running a one-time shell snippet:
+
+```bash
+python manage.py shell
+```
+
+Then paste and run the following inside the Django shell:
+
+```python
+from django.contrib.auth.models import Group
+for name in ['ADMIN', 'DOCTOR', 'TENS', 'CUIDADORA']:
+    Group.objects.get_or_create(name=name)
+print("Groups created.")
+```
+
+Alternatively, you can create the groups manually through the Django admin interface at `http://127.0.0.1:8000/admin/`.
+</Step>
+
+<Step title="(Optional) Configure Telegram alerts">
+If you want SIFA to send inventory and medication alerts via Telegram, set the following environment variables before starting the server:
+
+```bash
+# Linux / macOS
+export TELEGRAM_BOT_TOKEN="your-bot-token"
+export TELEGRAM_CHAT_ID="your-chat-id"
+
+# Windows (Command Prompt)
+set TELEGRAM_BOT_TOKEN=your-bot-token
+set TELEGRAM_CHAT_ID=your-chat-id
+```
+
+See [Configuration](/deployment/configuration) for how to obtain these values.
+</Step>
+
+<Step title="Start the development server">
+```bash
+python manage.py runserver
+```
+
+The server starts at `http://127.0.0.1:8000` by default.
+</Step>
+
+<Step title="Open SIFA in your browser">
+Navigate to `http://127.0.0.1:8000` and log in with the superuser credentials you created.
+
+The Django admin panel is available at `http://127.0.0.1:8000/admin/`.
+</Step>
+
+</Steps>

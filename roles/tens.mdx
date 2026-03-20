@@ -1,0 +1,83 @@
+---
+title: "TENS"
+description: "Manage caregiver assignments and medication restock"
+---
+
+The TENS role (Técnico en Enfermería de Nivel Superior) is responsible for the operational side of daily medication management: assigning caregivers to residents each morning and keeping medication stock levels adequate. TENS staff can also monitor the administration list throughout the day.
+
+## Capabilities
+
+### Resident records
+
+- View the full residents list with search and filter options.
+- View any resident's detail page, including prescriptions, medication orders, stock levels, and schedules.
+- View a resident's monthly administration report.
+
+<Note>
+TENS can read all resident and prescription data but cannot create residents, modify prescriptions, or mark administrations.
+</Note>
+
+### Caregiver assignments
+
+The assignments workflow is the primary daily responsibility of the TENS role.
+
+- View today's assignment board, which shows which caregivers are assigned to which residents.
+- Select the caregivers on duty and click **Generate** to create a new assignment. The system distributes active residents with medications scheduled for today evenly across the selected staff.
+- When an assignment is generated, SIFA automatically sends a Telegram message to the group channel summarizing each caregiver's resident list.
+- Toggle **solo asignados** mode to restrict the administration list view so each caregiver only sees their own residents.
+- Clear all assignments for the current day and regenerate if the roster changes.
+- Send a manual "medications ready" Telegram notification from the assignments page.
+
+<Tip>
+Both TENS and CUIDADORA users appear in the caregiver selector when generating assignments. A TENS user can be assigned residents just like a Cuidadora.
+</Tip>
+
+### Medication restock
+
+- Restock any medication order by adding units to its `stock_asignado` count.
+- This can be done from the dashboard (when a critical-stock alert is visible) or from the resident detail page.
+- After a restock, SIFA rechecks the stock threshold and clears the critical alert if the new level is above the threshold.
+
+<Warning>
+Only Admin can set or change the critical stock threshold (`stock_critico`) and the initial stock value. TENS can only add units on top of the existing count.
+</Warning>
+
+### Administration list (read + filter)
+
+TENS users have access to today's administration list (`/administracion/`). Their view is filtered to residents assigned to them (if they are assigned any). From this view they can:
+
+- See administration status for all scheduled events today.
+- Filter by time slot.
+- Use quick-mark to change an individual administration's state.
+
+## What TENS cannot do
+
+| Action | Who can do it |
+|--------|---------------|
+| Create or deactivate residents | Admin |
+| Create / edit / delete prescriptions or orders | Admin, Doctor |
+| Group-mark administrations | Admin, Cuidadora |
+| Manage user accounts | Admin only |
+| Edit medication catalog | Admin only |
+| Set stock thresholds | Admin only |
+| Export PDF reports | Admin only |
+
+## Typical daily workflow
+
+<Steps>
+  <Step title="Check the dashboard">
+    Log in and review the dashboard for today's pending administration count and any critical stock alerts.
+  </Step>
+  <Step title="Generate assignments">
+    Go to **Assignments**, select the caregivers present today, and click **Generate**. Verify the distribution looks correct.
+  </Step>
+  <Step title="Prepare medications and notify">
+    Prepare the medication trays for each caregiver. Use **Send medications ready** to notify caregivers via Telegram.
+  </Step>
+  <Step title="Monitor stock alerts">
+    During the day, watch for critical stock Telegram alerts. When a medication needs replenishing, use **Restock** on the dashboard or from the resident detail page.
+  </Step>
+  <Step title="Adjust assignments if needed">
+    If the roster changes mid-day, clear the current assignments and regenerate with the updated caregiver selection.
+  </Step>
+</Steps>

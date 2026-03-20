@@ -1,0 +1,72 @@
+---
+title: "Prescriptions"
+description: "Medical prescriptions and medication orders in SIFA"
+---
+
+SIFA models medication management as a three-level hierarchy: **prescriptions** group medication orders, and each order carries one or more scheduled administration times.
+
+## Data model
+
+### Prescription (`Receta`)
+
+A prescription links a resident to the doctor who issued it and defines the treatment period.
+
+| Field | Type | Notes |
+|---|---|---|
+| `residente` | FK → Residente | The resident the prescription belongs to |
+| `medico` | FK → User | The doctor (or admin) who created the prescription |
+| `numero` | Integer | Sequential number per resident, auto-assigned; read-only |
+| `inicio` | Date | Start date of the treatment |
+| `fin` | Date | Optional end date; `null` means open-ended |
+| `observaciones` | Text | Free-text clinical notes |
+| `activa` | Boolean | Whether the prescription is currently active |
+| `creada_en` | DateTime | Creation timestamp, set automatically |
+
+Prescriptions are ordered by `numero` descending (most recent first). The `numero` is assigned atomically using `SELECT FOR UPDATE` to prevent duplicate sequential numbers for the same resident.
+
+### Medication order (`OrdenMedicamento`)
+
+A medication order specifies the exact drug, dose, and route within a prescription.
+
+| Field | Type | Notes |
+|---|---|---|
+| `receta` | FK → Receta | The parent prescription |
+| `producto` | FK → Producto | The drug from the medication catalog |
+| `dosis` | Text | e.g. `1 tableta`, `5 ml` |
+| `via` | Text | Route of administration, e.g. `oral`, `IM`, `SC` |
+| `indicaciones` | Text | Additional clinical instructions |
+| `activo` | Boolean | Inactive orders are excluded from daily event generation |
+| `stock_asignado` | Integer | Current unit stock assigned to this order |
+| `stock_critico` | Integer | Threshold below which a low-stock alert is sent via Telegram |
+
+### Scheduled time (`HoraProgramada`)
+
+Each medication order has one or more scheduled times that define when it must be administered.
+
+| Field | Type | Notes |
+|---|---|---|
+| `orden` | FK → OrdenMedicamento | The parent medication order |
+| `hora` | Time | The time of day, stored in 24-hour format |
+| `dia_semana` | Integer (0–6) | Optional. `null` means every day; `0` = Monday through `6` = Sunday |
+
+### Relationship overview
+
+```
+Residente
+  └── Receta (prescription)
+        └── OrdenMedicamento (medication order)
+              ├── HoraProgramada (scheduled time)
+              └── Administracion (administration event, generated daily)
+```
+
+Administration events are generated automatically each day for all active prescriptions and active medication orders whose scheduled times match the current day of the week.
+
+## Access levels
+
+| Action | ADMIN | DOCTOR | TENS | CUIDADORA |
+|---|---|---|---|---|
+| View prescriptions | Yes | Yes | Yes | No |
+| Create prescription | Yes | Yes | No | No |
+| Edit medication order | Yes | Yes | No | No |
+| Delete prescription | Yes | Yes | No | No |
+| View monthly report | Yes | Yes | Yes | No |

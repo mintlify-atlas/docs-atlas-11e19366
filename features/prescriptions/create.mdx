@@ -1,0 +1,78 @@
+---
+title: "Creating a prescription"
+description: "How doctors create prescriptions for residents"
+---
+
+Prescriptions are created by users with the **DOCTOR** or **ADMIN** role. The creation form creates a `Receta`, one `OrdenMedicamento`, and all `HoraProgramada` records in a single atomic database transaction.
+
+<Steps>
+  <Step title="Navigate to the resident's detail page">
+    Go to **Residentes**, find the resident, and click their name to open the detail page at `/residentes/<residente_id>/`.
+  </Step>
+
+  <Step title="Click Nueva receta">
+    Click the **Nueva receta** button. The form opens at `/recetas/nueva/<residente_id>/`.
+  </Step>
+
+  <Step title="Fill in the prescription details">
+    Complete the prescription header:
+
+    | Field | Required | Notes |
+    |---|---|---|
+    | Fecha de inicio | Yes | Start date of the treatment |
+    | Fecha de fin | No | Leave blank for open-ended prescriptions |
+    | Observaciones | No | Clinical notes or special instructions |
+    | Activa | Yes | Leave checked to activate the prescription immediately |
+  </Step>
+
+  <Step title="Select or create a medication">
+    Use the medication autocomplete field to search for an existing drug in the local catalog. The autocomplete queries three sources in order:
+
+    1. **Local catalog** — drugs already registered in SIFA.
+    2. **CIMA (AEMPS)** — the Spanish drug registry.
+    3. **RxNorm (NIH)** — the US drug terminology database.
+
+    If the medication is not found in any source, fill in the **Nuevo medicamento** section at the bottom of the form:
+
+    | Field | Notes |
+    |---|---|
+    | Nombre | e.g. `Paracetamol` |
+    | Potencia | e.g. `500 mg` |
+    | Forma | e.g. `Tableta`, `Jarabe` |
+
+    Submitting the form with these fields filled creates a new `Producto` in the catalog.
+  </Step>
+
+  <Step title="Set dose, route, and indications">
+    Fill in the medication order fields:
+
+    | Field | Example |
+    |---|---|
+    | Dosis | `1 tableta`, `5 ml` |
+    | Vía | `oral`, `IM`, `SC` |
+    | Indicaciones | Free-text instructions for the caregiver |
+  </Step>
+
+  <Step title="Add scheduled administration times">
+    Click **Agregar hora** to add one or more scheduled times. For each time entry:
+
+    - **Hora** — the administration time in HH:MM format (24-hour).
+    - **Día de la semana** — optional. Leave blank to apply the schedule every day. Select a specific day (Lun–Dom) to restrict the order to that day of the week only.
+
+    You can add as many time entries as needed for the order.
+  </Step>
+
+  <Step title="Submit the form">
+    Click **Guardar receta**. If validation passes, SIFA:
+
+    1. Creates the `Receta` and assigns it the next sequential number for this resident.
+    2. Creates the `OrdenMedicamento` linked to the prescription.
+    3. Creates all `HoraProgramada` records.
+
+    You are redirected back to the resident's detail page with a success message showing the prescription number (e.g. `Receta #3 creada correctamente.`).
+  </Step>
+</Steps>
+
+<Note>
+At least one scheduled time is required. The form will not submit and will display the message "Agrega al menos una hora." if no times have been added.
+</Note>

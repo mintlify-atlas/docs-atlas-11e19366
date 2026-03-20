@@ -1,0 +1,109 @@
+---
+title: "Admin (Enfermera)"
+description: "Full system access for the lead nurse administrator"
+---
+
+The Admin role — known in the system as **Enfermera** — is the highest-privilege role in SIFA. An Admin user can access every feature in the application. This role is intended for the lead nurse or nursing coordinator who is responsible for the daily operation of the facility.
+
+<Note>
+Django superusers are treated as Admin automatically. The `is_admin()` helper checks `user.is_superuser` in addition to group membership, so a superuser account does not need to be added to the `ADMIN` group.
+</Note>
+
+## Capabilities
+
+### Resident management
+
+- View the full list of residents, with filters by name, RUT, sex, and active/inactive status.
+- Create new residents and immediately create their first prescription.
+- View any resident's detail page, including all prescriptions and medication orders.
+- Deactivate a resident (soft delete — history and prescriptions are preserved).
+- Update stock levels for individual medication orders directly from the resident detail page.
+
+### Prescriptions and medication orders
+
+- Create new prescriptions for any resident.
+- Add, edit, and delete medication orders within a prescription.
+- Define administration schedules (time of day and day of week) for each order.
+
+### Administration tracking
+
+- View today's administration list for all residents.
+- Filter the list by time slot or by assigned caregiver.
+- Mark individual administrations as **Administered**, **Omitted**, or **Rejected** using quick-mark.
+- Use group-mark to set all events in a time slot to the same state at once.
+
+### Inventory and stock
+
+- Restock any medication order (add units to `stock_asignado`) from the dashboard or administration list.
+- Set the critical stock threshold (`stock_critico`) for any order.
+- View all medication orders currently at or below their critical threshold from the dashboard.
+
+### Assignments
+
+- View and generate daily caregiver-to-resident assignments.
+- Select which caregivers participate in a given day's assignment.
+- Toggle "solo asignados" mode to restrict what caregivers see.
+- Clear all assignments for the current day.
+- Send a Telegram notification that medications are ready for pickup.
+
+### User management
+
+User management is exclusively available to the Admin role. From **Users**, an Admin can:
+
+- List all users with search and role filter.
+- Create new user accounts and assign a role (ADMIN, DOCTOR, TENS, or CUIDADORA).
+- Edit a user's profile and change their role.
+- Reset a user's password.
+- Delete user accounts (with protection against self-deletion).
+
+<Warning>
+Deleting a user account is permanent. Consider deactivating the account instead if you may need the user's history.
+</Warning>
+
+### Medication catalog
+
+- Browse the full catalog of registered medications (paginated, searchable).
+- Create new medications with name, potency, and form.
+- Edit and delete existing medications.
+
+### Reports and PDF export
+
+- View monthly administration reports for any resident.
+- Export any resident's monthly report as a PDF (A4 landscape) using WeasyPrint.
+- The PDF includes the resident's demographic data, allergy information, and a full administration grid for the selected month.
+
+## What only Admin can do
+
+The following actions are restricted to Admin and are not available to any other role:
+
+| Action | View / URL |
+|--------|------------|
+| Create a resident | `residente_create` |
+| Deactivate a resident | `residente_delete` |
+| Update stock from resident detail | POST on `residente_detail` |
+| User list, create, edit, password, delete | `user_*` views |
+| Medication catalog CRUD | `medicamentos_*` views |
+| Export monthly report as PDF | `registro_mensual_pdf` |
+
+## Typical daily workflow
+
+<Steps>
+  <Step title="Review the dashboard">
+    Log in and check the dashboard for the count of today's pending administrations and any medication orders at critical stock levels.
+  </Step>
+  <Step title="Generate assignments">
+    Go to **Assignments** and select the caregivers on duty today. Click **Generate** to distribute residents evenly. The system sends a Telegram message to the group with each caregiver's resident list.
+  </Step>
+  <Step title="Prepare and notify">
+    Prepare the medications for each caregiver. Send the "medications ready" Telegram notification from the Assignments page.
+  </Step>
+  <Step title="Monitor administration progress">
+    Throughout the day, check the administration list. Filter by caregiver to follow up on specific staff. Use group-mark to bulk-update a completed time slot if needed.
+  </Step>
+  <Step title="Restock as needed">
+    When a medication reaches a critical stock level, the system sends an automatic Telegram alert. Restock from the dashboard or the resident detail page.
+  </Step>
+  <Step title="Export monthly reports">
+    At the end of the month, export PDF reports for residents who require clinical documentation.
+  </Step>
+</Steps>

@@ -1,0 +1,74 @@
+---
+title: "Medication orders"
+description: "Managing individual medication orders within a prescription"
+---
+
+A medication order (`OrdenMedicamento`) represents a single drug within a prescription. You can add, edit, and remove orders after a prescription has been created.
+
+## Adding a medication order to an existing prescription
+
+From the resident's detail page, locate the prescription and click **Agregar medicamento**. This opens the order form at `/orden/nueva/<receta_id>/`.
+
+Fill in the medication, dose, route, indications, and at least one scheduled time, then click **Guardar**. The new order is added to the prescription and will generate administration events starting the next time the daily scheduler runs.
+
+## Editing a medication order
+
+Click the **Editar** button next to any medication order on the resident detail page. The edit form opens at `/orden/<orden_id>/editar/`.
+
+You can update:
+
+- The medication (`producto`) — select a different drug from the catalog or create a new one inline.
+- Dose (`dosis`), route (`via`), and clinical indications.
+- Scheduled times — the existing times are pre-populated. Any changes replace all previous scheduled times for that order.
+
+Click **Guardar** to save. You are redirected back to the resident's detail page.
+
+## Deleting a medication order
+
+Click the **Eliminar** button next to a medication order. A confirmation page is shown at `/orden/<orden_id>/eliminar/`. Submit the confirmation form to permanently delete the order and all its scheduled times.
+
+<Warning>
+Deleting a medication order also deletes its `HoraProgramada` records. Historical `Administracion` events that were already generated are not deleted and remain visible in the monthly report.
+</Warning>
+
+## Activating and deactivating an order
+
+Each medication order has an `activo` flag. When `activo` is `False`:
+
+- No new administration events are generated for that order.
+- The order remains visible on the resident's detail page and in historical reports.
+
+Toggle the **Activo** checkbox in the edit form to activate or deactivate an order without deleting it.
+
+## Stock fields
+
+Each medication order tracks its own stock:
+
+| Field | Description |
+|---|---|
+| `stock_asignado` | Current number of units assigned to this order. Decremented automatically when a dose is marked as DADA or RECHAZADA. |
+| `stock_critico` | Minimum threshold. When `stock_asignado` drops to or below this value, SIFA sends a Telegram alert to configured recipients. |
+
+Admins can update stock values directly from the resident detail page. TENS users can add stock via the restock action at `/orden/<orden_id>/restock/`.
+
+Once the stock level rises above `stock_critico`, the `alerta_enviada` flag is reset so the alert can fire again on the next critical event.
+
+## Medication autocomplete
+
+When selecting a medication in the order form, the autocomplete field at the top queries the endpoint `/api/productos/suggest/?q=<term>`. Results are merged from three sources:
+
+<CardGroup cols={3}>
+  <Card title="Local catalog">
+    Drugs already registered in SIFA. Results are labeled `source: local` and include the stored `potencia` and `forma` fields.
+  </Card>
+  <Card title="CIMA (AEMPS)">
+    The Spanish Agency of Medicines and Medical Devices registry. Queries `/medicamentos?nombre=` with a `/vmpp` fallback. Results are labeled `source: cima`.
+  </Card>
+  <Card title="RxNorm (NIH)">
+    The US National Library of Medicine drug terminology. Queries `/REST/drugs.json?name=`. Results are labeled `source: rxnorm`.
+  </Card>
+</CardGroup>
+
+Local results appear first. External sources are queried only if the local catalog returns fewer than the configured limit (default: 10). Each source has a 2-second timeout; a network failure silently skips that source.
+
+If the desired medication is not found in any source, fill in the **Nuevo medicamento** inline form to create it directly in the local catalog.

@@ -1,122 +1,121 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "KIBEN – SIFA",
+  "theme": "almond",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#2C7A7B",
+    "light": "#E6F6F6",
+    "dark": "#1A4A4B"
   },
-  "favicon": "/favicon.svg",
+  "navbar": {
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/Vixoo88/Capstone_Moreno_Quintana"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/Vixoo88/Capstone_Moreno_Quintana"
+    }
+  },
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Overview",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Get Started",
             "pages": [
-              "index",
+              "introduction",
               "quickstart",
-              "development"
+              "architecture"
             ]
           },
           {
-            "group": "Customization",
+            "group": "User Roles",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
-            ]
-          },
-          {
-            "group": "Writing content",
-            "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
-            ]
-          },
-          {
-            "group": "AI tools",
-            "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "roles/overview",
+              "roles/admin",
+              "roles/doctor",
+              "roles/tens",
+              "roles/cuidadora"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "Core Features",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "Residents",
             "pages": [
-              "api-reference/introduction"
+              "features/residents/overview",
+              "features/residents/create",
+              "features/residents/monthly-report"
             ]
           },
           {
-            "group": "Endpoint examples",
+            "group": "Prescriptions & Medications",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "features/prescriptions/overview",
+              "features/prescriptions/create",
+              "features/prescriptions/medication-orders"
+            ]
+          },
+          {
+            "group": "Administration",
+            "pages": [
+              "features/administration/daily-schedule",
+              "features/administration/marking",
+              "features/administration/assignments"
+            ]
+          },
+          {
+            "group": "Inventory",
+            "pages": [
+              "features/inventory/stock-management",
+              "features/inventory/alerts"
+            ]
+          },
+          {
+            "group": "Notifications",
+            "pages": [
+              "features/notifications/telegram"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Deployment",
+        "groups": [
+          {
+            "group": "Setup",
+            "pages": [
+              "deployment/requirements",
+              "deployment/installation",
+              "deployment/configuration"
+            ]
+          },
+          {
+            "group": "Android App",
+            "pages": [
+              "deployment/android-app"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Endpoints",
+            "pages": [
+              "api/overview",
+              "api/products-suggest"
             ]
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
-    }
-  },
-  "contextual": {
-    "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
-  },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
-    }
+    ]
   }
 }

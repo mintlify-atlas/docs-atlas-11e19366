@@ -1,0 +1,99 @@
+---
+title: "Android app"
+description: "Installing and using the SIFA Android companion app"
+---
+
+The SIFA Android app is a companion application designed for caregivers (*cuidadoras*) who need access to resident information and medication schedules on a mobile device. It communicates with the SIFA Django backend over the local network.
+
+<Warning>
+This is a **debug APK** — it is not signed for release and is not published on the Google Play Store. It must be installed manually using ADB or the device's file manager.
+</Warning>
+
+## APK location
+
+The APK file is included in the project repository:
+
+```
+Fase 2/Evidencias Proyectos/app-debug.apk
+```
+
+Copy this file to your computer before proceeding.
+
+## Android version compatibility
+
+<Note>
+The app requires **Android 6.0 (API level 23)** or later. It targets Android 16 (API level 36). Most Android devices manufactured after 2015 are compatible.
+</Note>
+
+## Installation via ADB
+
+ADB (Android Debug Bridge) is the most reliable method for sideloading debug builds.
+
+<Steps>
+
+<Step title="Enable USB debugging on the device">
+1. Open **Settings** on the Android device.
+2. Go to **About phone** and tap **Build number** seven times to unlock developer options.
+3. Go back to **Settings**, open **Developer options**, and enable **USB debugging**.
+</Step>
+
+<Step title="Connect the device">
+Connect the Android device to your computer via USB. When prompted on the device, tap **Allow** to authorise the ADB connection.
+
+Verify the device is detected:
+
+```bash
+adb devices
+```
+
+You should see your device listed with the status `device`.
+</Step>
+
+<Step title="Install the APK">
+Run the following command from the directory containing the APK file:
+
+```bash
+adb install app-debug.apk
+```
+
+A successful installation prints `Success` to the terminal.
+</Step>
+
+<Step title="Launch the app">
+Open the **SIFA** app from the device's app drawer.
+</Step>
+
+</Steps>
+
+## Installation via file manager (without ADB)
+
+If you do not have ADB available, you can install the APK directly on the device.
+
+<Steps>
+
+<Step title="Allow installation from unknown sources">
+1. Open **Settings** on the device.
+2. Navigate to **Security** (or **Apps & notifications > Special app access** on newer Android versions).
+3. Enable **Install unknown apps** for your file manager or browser.
+</Step>
+
+<Step title="Transfer the APK">
+Copy `app-debug.apk` to the device via USB, email, or a local file-sharing tool.
+</Step>
+
+<Step title="Open and install the APK">
+Using the file manager, navigate to the APK file and tap it. Follow the on-screen prompts to complete the installation.
+</Step>
+
+</Steps>
+
+## App details
+
+| Property | Value |
+|----------|-------|
+| Application ID | `com.tuorg.sifa` |
+| Version name | 1.0 |
+| Minimum Android | 6.0 (API 23) |
+| Target Android | 16 (API 36) |
+| Build type | Debug |
+| UI framework | Jetpack Compose |

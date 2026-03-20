@@ -1,0 +1,93 @@
+---
+title: "Marking administrations"
+description: "How to record medication administration for residents"
+---
+
+<Warning>
+Only **Admin** and **Cuidadora** roles can mark administrations. TENS and Doctor have read-only access to the schedule.
+</Warning>
+
+There are three ways to record the outcome of a medication event.
+
+<Tabs>
+  <Tab title="Quick mark">
+    The fastest option — a single button click on the schedule list.
+
+    **Endpoint:** `POST /administracion/quick/<admin_id>/`
+
+    Send `estado` in the POST body with one of:
+
+    | Value | Meaning |
+    |---|---|
+    | `DADA` | Administered |
+    | `OMITIDA` | Skipped |
+    | `RECHAZADA` | Refused |
+    | `PENDIENTE` | Revert to pending |
+
+    The view saves the new state, records `realizada_por` (the current user), adjusts stock, and redirects back to the schedule — preserving the active hour filter (`?h=HH:MM`) if one was set.
+
+    ```python
+    # Minimal form to quick-mark from a template
+    <form method="post" action="{% url 'admin_marcar_rapido' evento.id %}?h={{ seleccion }}">
+      {% csrf_token %}
+      <input type="hidden" name="estado" value="DADA">
+      <button type="submit">✓ Dar</button>
+    </form>
+    ```
+  </Tab>
+  <Tab title="Group mark">
+    Marks **all events in a given hour slot** at once — useful at the start of a shift when a caregiver administers a full round.
+
+    **Endpoint:** `POST /administracion/grupo/`
+
+    | Field | Description |
+    |---|---|
+    | `hora` | Hour slot in `HH:MM` format |
+    | `estado` | Target state for all events in that slot |
+
+    The view iterates every `Administracion` scheduled for today at that time, updates each state, records the performing user, and adjusts stock individually per event.
+
+    ```python
+    # Minimal form for group mark
+    <form method="post" action="{% url 'admin_marcar_grupo' %}">
+      {% csrf_token %}
+      <input type="hidden" name="hora" value="08:00">
+      <input type="hidden" name="estado" value="DADA">
+      <button type="submit">Marcar todas las 08:00 como Dadas</button>
+    </form>
+    ```
+
+    <Note>
+    Group mark is restricted to **Cuidadora** and **Admin** roles.
+    </Note>
+  </Tab>
+  <Tab title="Detailed mark">
+    Opens a full form for a single event, allowing you to record the exact quantity administered and a free-text observation.
+
+    **Endpoint:** `GET/POST /administracion/marcar/<admin_id>/`
+
+    | Field | Model field | Description |
+    |---|---|---|
+    | Estado | `estado` | One of the four states |
+    | Cantidad administrada | `cantidad_administrada` | Decimal ≥ 0, optional |
+    | Observación | `observacion` | Free text, optional |
+
+    On a valid POST the view calls `_ajustar_stock_por_transicion()` with the old and new states, then redirects to the schedule.
+  </Tab>
+</Tabs>
+
+## Stock adjustment on state change
+
+Every marking operation — regardless of method — calls `_ajustar_stock_por_transicion(evento, old_state, new_state)`, which applies the following rules:
+
+| Transition | Stock effect |
+|---|---|
+| Any state → `DADA` or `RECHAZADA` | `stock_asignado − 1` (if > 0) |
+| `DADA` or `RECHAZADA` → `PENDIENTE` or `OMITIDA` | `stock_asignado + 1` |
+| No state change or same category | No change |
+
+After every stock adjustment the system calls `_check_alerta_stock()` to trigger a Telegram alert if the stock has crossed the critical threshold. See [Critical stock alerts](/features/inventory/alerts).
+
+<Tip>
+Reverting a `DADA` or `RECHAZADA` back to `PENDIENTE` or `OMITIDA` restores the stock unit. This is safe to do if an event was marked by mistake.
+</Tip>

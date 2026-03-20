@@ -1,0 +1,61 @@
+---
+title: "Daily administration schedule"
+description: "View and manage today's medication administration tasks"
+---
+
+The daily schedule lists every medication event that must be administered today. It is the central workspace for caregivers and admins during a shift.
+
+## How the schedule is generated
+
+When the page loads, SIFA automatically runs `_generar_eventos_hoy()`, an idempotent function that:
+
+1. Reads all active `Receta` records whose `inicio` is on or before today and whose `fin` is today or later (or has no end date).
+2. For each active `OrdenMedicamento` in those recipes, looks at every `HoraProgramada`.
+3. Skips any hour slot whose `dia_semana` does not match today's weekday.
+4. Creates one `Administracion` record per matching (order, time) pair, with state `PENDIENTE`, using `get_or_create` so it never duplicates.
+
+<Note>
+The same generation logic also runs when the main dashboard loads, so by the time staff open the schedule it is always up to date.
+</Note>
+
+## Navigating the schedule
+
+Go to **Administración** (`/administracion/`) to open today's schedule. Medication events are grouped by hour slot and sorted alphabetically by resident name within each group.
+
+### Filters
+
+| Filter | How to use | Available to |
+|---|---|---|
+| **Resident search** | Type part of a name in the search field (`?q=`) | All roles |
+| **Hour slot** | Click an hour chip to show only that slot (`?h=HH:MM`) | All roles |
+| **Caregiver** | Select from the caregiver dropdown (`?cuid=<id>`) | Admin only |
+
+## Administration states
+
+Every event carries one of four states:
+
+| Symbol | State | Meaning |
+|---|---|---|
+| `•` | `PENDIENTE` | Created but not yet acted on |
+| `✓` | `DADA` | Medication was successfully administered |
+| `✕` | `OMITIDA` | Dose was skipped (no stock impact) |
+| `R` | `RECHAZADA` | Resident refused the medication |
+
+<Info>
+`DADA` and `RECHAZADA` both decrement the resident's stock by 1. `OMITIDA` does not affect stock. See [Marking administrations](/features/administration/marking) for details.
+</Info>
+
+## Who sees what
+
+<CardGroup cols={2}>
+  <Card title="Cuidadoras" icon="user">
+    See only the residents assigned to them today via `Asignacion` records. If no assignments exist for the day they see no events.
+  </Card>
+  <Card title="Admins" icon="shield">
+    See all residents and can filter by caregiver using the caregiver dropdown. The dropdown lists only caregivers who have assignments today.
+  </Card>
+</CardGroup>
+
+<Note>
+TENS and Doctor roles have read-only access to the schedule. They can view all events but cannot change states.
+</Note>

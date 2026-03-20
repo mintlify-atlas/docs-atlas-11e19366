@@ -1,0 +1,102 @@
+---
+title: "Caregiver assignments"
+description: "Assign caregivers to residents for each day"
+---
+
+Assignments control which residents each Cuidadora (or TENS) sees on the daily administration schedule. Without an assignment a caregiver sees no events.
+
+<Info>
+Only **TENS** and **Admin** roles can manage assignments.
+</Info>
+
+## How assignments work
+
+Two models cooperate to control visibility:
+
+- **`DiaAsignacion`** — one record per calendar day. Holds the `solo_asignados` flag and a many-to-many list of caregivers selected for that day.
+- **`Asignacion`** — one record per (date, caregiver, resident) triple. A resident can have at most one caregiver per day (`unique_together` on `fecha` + `residente`).
+
+When a Cuidadora opens the schedule, the system queries `Asignacion` for today and that user, then filters the administration events to only those residents.
+
+## Visibility modes
+
+The `DiaAsignacion.solo_asignados` flag switches between two modes:
+
+| Mode | `solo_asignados` value | What caregivers see |
+|---|---|---|
+| **Show all** | `False` (default) | All residents with events today |
+| **Assigned only** | `True` | Only their assigned residents |
+
+Toggle the mode from the Assignments page using the toggle button, which POSTs to `/asignaciones/toggle/`.
+
+## Managing assignments
+
+### View today's assignments
+
+Navigate to **Asignaciones** (`/asignaciones/`). The page shows:
+
+- All active Cuidadora and TENS users.
+- Which residents are currently assigned to each.
+- The active visibility mode.
+
+### Create or regenerate assignments
+
+<Steps>
+  <Step title="Select caregivers">
+    On the Assignments page, check the caregivers you want to include in today's distribution. If you leave all unchecked, all active Cuidadora and TENS users are used.
+  </Step>
+  <Step title="Generate assignments">
+    Click **Generar asignaciones**. This POSTs to `/asignaciones/generar/` and:
+
+    1. Deletes all existing `Asignacion` records for today.
+    2. Collects all residents with at least one administration event today.
+    3. Shuffles the resident list and distributes them round-robin across the selected caregivers.
+    4. Saves the new `Asignacion` bulk in a single database write.
+    5. Sends a Telegram summary of the distribution (see below).
+  </Step>
+  <Step title="Review the result">
+    The page reloads showing the new per-caregiver groupings. Adjust manually if needed.
+  </Step>
+</Steps>
+
+### Toggle visibility mode
+
+POST to `/asignaciones/toggle/` with `solo_asignados=1` (restricted) or `solo_asignados=0` (open). The page offers a toggle button that sends this automatically.
+
+### Clear assignments
+
+Click **Limpiar asignaciones** (POST to `/asignaciones/limpiar/`). This deletes all `Asignacion` records for today. Caregivers will no longer see any events until assignments are regenerated.
+
+<Warning>
+Clearing assignments while caregivers are mid-shift means they immediately lose visibility of their residents on the schedule.
+</Warning>
+
+## Telegram medication reminder
+
+The **Avisar medicamentos** button (POST to `/asignaciones/avisar-meds/`) sends a broadcast Telegram message notifying caregivers that today's medications are ready for pickup at the nursing station.
+
+The default message is:
+
+```
+💊 Medicamentos de hoy (DD/MM/YYYY) están listos para retiro en Enfermería.
+Por favor pasar a buscar y administrar. Gracias.
+```
+
+You can customise the message text by submitting a non-empty `mensaje` field with the POST. See [Telegram notifications](/features/notifications/telegram) for setup.
+
+## Telegram assignment summary
+
+When assignments are generated, SIFA automatically sends a Telegram message with the full distribution:
+
+```
+📋 Asignación de residentes — DD/MM/YYYY
+
+🧑‍⚕️ Ana García → 3 residente(s):
+   • Juan Pérez
+   • María López
+   • Pedro Soto
+
+🧑‍⚕️ Luis Rojas → 2 residente(s):
+   • Carmen Díaz
+   • Rosa Fuentes
+```

@@ -1,0 +1,77 @@
+---
+title: "Doctor"
+description: "Create and manage medical prescriptions"
+---
+
+The Doctor role is responsible for creating and managing medical prescriptions for residents. Doctors have read access to resident records and full write access to prescriptions and medication orders, but they cannot manage users, inventory, assignments, or reports.
+
+## Capabilities
+
+### Resident records
+
+- View the residents list with search and filter options.
+- View any resident's detail page, including all active prescriptions, medication orders, administration schedules, and current stock levels.
+- View a resident's monthly administration report.
+
+<Note>
+Doctors can view resident details and monthly reports but cannot create or deactivate residents. Only the Admin (Enfermera) can create new resident records.
+</Note>
+
+### Prescriptions
+
+Doctors can create a new prescription for any resident from the resident detail page. Each prescription records:
+
+- The prescribing doctor (set automatically to the logged-in user).
+- A sequential prescription number scoped to the resident.
+- Start and optional end dates.
+- An initial medication order (required at creation time).
+
+Doctors can also delete a prescription, which removes it and all its associated orders.
+
+### Medication orders
+
+After creating a prescription, the Doctor can add further medication orders to it. Each order records:
+
+- The medication (selected from the catalog or created inline).
+- Dose and administration instructions.
+- One or more scheduled times (hour and optional day of week).
+- Stock quantities (`stock_asignado` and `stock_critico`).
+
+Doctors can edit existing orders (change dose, schedule, or medication) and delete orders from a prescription.
+
+<Tip>
+When creating a medication order, you can either pick an existing medication from the catalog using the autocomplete search or fill in the "New medication" inline form to register a new one on the fly. The inline form creates the medication in the catalog permanently.
+</Tip>
+
+## What Doctor cannot do
+
+| Action | Who can do it |
+|--------|---------------|
+| Create or deactivate residents | Admin |
+| Mark medication administrations | Admin, Cuidadora |
+| Restock medication inventory | Admin, TENS |
+| Manage caregiver assignments | Admin, TENS |
+| Manage user accounts | Admin only |
+| Edit medication catalog directly | Admin only |
+| Export PDF reports | Admin only |
+
+## Typical workflow
+
+<Steps>
+  <Step title="Open the resident record">
+    Go to **Residents**, search by name or RUT, and open the resident's detail page.
+  </Step>
+  <Step title="Create a prescription">
+    Click **New prescription**. Fill in the prescription details and add the first medication order, including dose and schedule.
+  </Step>
+  <Step title="Add further orders">
+    From the resident detail page, click **Add medication** on the prescription to add more medication orders as needed.
+  </Step>
+  <Step title="Review and adjust">
+    If a treatment changes, edit the medication order to update the dose, schedule, or medication. Delete obsolete orders from inactive treatments.
+  </Step>
+</Steps>
+
+<Warning>
+Deleting a prescription or medication order is permanent and removes all associated administration history. Deactivate the order or set an end date on the prescription instead if you need to retain historical records.
+</Warning>

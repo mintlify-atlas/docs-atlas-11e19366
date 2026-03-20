@@ -1,0 +1,82 @@
+---
+title: "Introduction"
+description: "SIFA — Sistema Integral de Farmacia y Administración for nursing homes"
+---
+
+# KIBEN – SIFA
+
+SIFA (Sistema Integral de Farmacia y Administración) is a web-based healthcare management platform designed for nursing homes and elder care facilities. It centralizes resident records, medical prescriptions, medication administration tracking, inventory management, and caregiver assignments in one secure system.
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Get SIFA running in your facility in minutes
+  </Card>
+  <Card title="Architecture" icon="sitemap" href="/architecture">
+    Understand the system design and technology stack
+  </Card>
+  <Card title="User Roles" icon="users" href="/roles/overview">
+    Learn how Admin, Doctor, TENS, and Cuidadora roles work
+  </Card>
+  <Card title="Core Features" icon="star" href="/features/residents/overview">
+    Explore resident management, prescriptions, and administration
+  </Card>
+</CardGroup>
+
+## What SIFA does
+
+SIFA solves the daily challenge of medication management in nursing homes by providing a structured, role-based workflow from prescription to administration.
+
+<CardGroup cols={2}>
+  <Card title="Resident profiles" icon="person">
+    Store complete medical profiles including allergies, prescriptions, and administration history for each resident
+  </Card>
+  <Card title="Prescription management" icon="file-medical">
+    Doctors create prescriptions with medication orders, doses, and administration schedules
+  </Card>
+  <Card title="Daily administration" icon="calendar-check">
+    Staff track every medication dose — administered, omitted, or rejected — with a full audit trail
+  </Card>
+  <Card title="Inventory control" icon="boxes-stacked">
+    Monitor medication stock levels per resident with automatic critical-stock alerts via Telegram
+  </Card>
+  <Card title="Caregiver assignments" icon="user-nurse">
+    TENS staff assign caregivers to residents daily, controlling which residents each caregiver sees
+  </Card>
+  <Card title="Monthly reports" icon="chart-bar">
+    Generate and export monthly administration reports as PDF for clinical records and audits
+  </Card>
+</CardGroup>
+
+## Who uses SIFA
+
+SIFA is built around four user roles that mirror real nursing home workflows:
+
+| Role | Spanish name | Primary responsibilities |
+|------|-------------|--------------------------|
+| **Admin** | Enfermera | Full system access, user management, stock updates |
+| **Doctor** | Doctor | Create and manage prescriptions and medication orders |
+| **TENS** | TENS | Manage caregiver assignments and restock medications |
+| **Caregiver** | Cuidadora | View and mark daily medication administrations |
+
+## Technology stack
+
+SIFA is a Django 5.x web application backed by SQLite, with a companion Android app for mobile use.
+
+<CardGroup cols={2}>
+  <Card title="Web app" icon="globe">
+    Django 5.2, Python, SQLite, Bootstrap-based UI
+  </Card>
+  <Card title="Android app" icon="mobile">
+    Native Android app (Kotlin) distributed as APK
+  </Card>
+  <Card title="Notifications" icon="bell">
+    Telegram Bot API for real-time stock alerts
+  </Card>
+  <Card title="PDF export" icon="file-pdf">
+    WeasyPrint for server-side PDF generation
+  </Card>
+</CardGroup>
+
+<Note>
+SIFA is a capstone project (KIBEN) developed by Sergio Moreno and Vicente Quintana. It is designed for deployment in a single nursing home facility.
+</Note>

@@ -1,0 +1,59 @@
+---
+title: "Residents"
+description: "Managing nursing home residents in SIFA"
+---
+
+The **Residents** module is the central record of everyone living in the nursing home. Every prescription, medication order, and administration event is ultimately linked to a resident.
+
+## Resident record fields
+
+| Field | Type | Notes |
+|---|---|---|
+| `nombre_completo` | Text | Full name, up to 160 characters |
+| `rut` | Text | Chilean national ID; must be unique across all residents |
+| `fecha_nacimiento` | Date | Optional; used to calculate age in reports |
+| `sexo` | Choice | `M` Masculino · `F` Femenino · `O` Otro/ND |
+| `alergias` | Text | Free-text allergy notes |
+| `activo` | Boolean | `True` while the resident is active; `False` after deactivation |
+
+## Residents list
+
+Navigate to **Residentes** in the sidebar to open the list. The list shows all residents by default (active and inactive).
+
+Available filters:
+
+- **Search (`q`)** — matches against `nombre_completo` or `rut` (case-insensitive).
+- **Sexo** — filter by `M`, `F`, or `O`.
+- **Estado** — filter by `Activo`, `Inactivo`, or show all.
+
+Results are sorted alphabetically by full name.
+
+## Resident detail page
+
+Click any resident row to open their detail page at `/residentes/<id>/`. The page displays:
+
+- All personal data fields.
+- A list of every **prescription** (`Receta`) linked to the resident, sorted by most recent first.
+- Under each prescription, the full list of **medication orders** (`OrdenMedicamento`), including scheduled times and current stock.
+- Buttons to add a new prescription, edit or delete individual medication orders, and view the monthly administration report.
+
+## Soft-delete: deactivating a resident
+
+SIFA never deletes residents. The **Eliminar** action on a resident detail page posts to `/residentes/<id>/eliminar/` and sets `activo = False`. All historical prescriptions, medication orders, and administration events are preserved.
+
+<Warning>
+Once deactivated, a resident no longer appears in the default list view and no new administration events are generated for them. Reactivation requires an Admin to edit the record and set `activo` back to `True`.
+</Warning>
+
+## Access levels
+
+| Role | List | Detail | Create | Deactivate |
+|---|---|---|---|---|
+| ADMIN | Yes | Yes | Yes | Yes |
+| DOCTOR | Yes | Yes | No | No |
+| TENS | Yes | Yes | No | No |
+| CUIDADORA | No | No | No | No |
+
+<Info>
+Cuidadoras access resident information indirectly through the daily administration view, scoped to their assigned residents.
+</Info>
