@@ -85,7 +85,7 @@ Always returns HTTP 200 with a JSON body.
 ## Provider behavior
 
 <Warning>
-  The CIMA and RxNorm providers make outbound HTTP requests to external services. If the network is unavailable or the remote service is slow, those providers are skipped silently and return no results. The timeout is configurable via the `DRUG_SUGGEST_TIMEOUT` Django setting (default: 2 seconds).
+  The CIMA and RxNorm providers make outbound HTTP requests to external services. If the network is unavailable or the remote service is slow, those providers are skipped silently and return no results. The timeout is configurable via the `DRUG_SUGGEST_TIMEOUT` Django setting (default: 4 seconds).
 </Warning>
 
 <Tabs>
@@ -199,4 +199,4 @@ curl -s \
 |---------|---------|-------------|
 | `DRUG_SUGGEST_PROVIDER` | `HYBRID` | Default provider when `provider` parameter is not supplied |
 | `DRUG_SUGGEST_LIMIT` | `10` | Maximum number of results across all providers |
-| `DRUG_SUGGEST_TIMEOUT` | `2` | Timeout in seconds for each external API call |
+| `DRUG_SUGGEST_TIMEOUT` | `4` | Timeout in seconds for each external API call |

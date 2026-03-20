@@ -69,6 +69,6 @@ When selecting a medication in the order form, the autocomplete field at the top
   </Card>
 </CardGroup>
 
-Local results appear first. External sources are queried only if the local catalog returns fewer than the configured limit (default: 10). Each source has a 2-second timeout; a network failure silently skips that source.
+Local results appear first. External sources are queried only if the local catalog returns fewer than the configured limit (default: 10). Each source has a 4-second timeout (configurable via `DRUG_SUGGEST_TIMEOUT`); a network failure silently skips that source.
 
 If the desired medication is not found in any source, fill in the **Nuevo medicamento** inline form to create it directly in the local catalog.

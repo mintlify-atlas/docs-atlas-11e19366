@@ -3,15 +3,15 @@ title: "Marking administrations"
 description: "How to record medication administration for residents"
 ---
 
-<Warning>
-Only **Admin** and **Cuidadora** roles can mark administrations. TENS and Doctor have read-only access to the schedule.
-</Warning>
-
 There are three ways to record the outcome of a medication event.
+
+<Note>
+Access differs by method: **quick-mark** is available to all authenticated users (`@login_required` only); **group-mark** and **detailed mark** are restricted to **Admin** and **Cuidadora** roles (`@cuidadora_or_admin_required`).
+</Note>
 
 <Tabs>
   <Tab title="Quick mark">
-    The fastest option — a single button click on the schedule list.
+    The fastest option — a single button click on the schedule list. Available to **all authenticated users** (no role restriction — decorator is `@login_required` only).
 
     **Endpoint:** `POST /administracion/quick/<admin_id>/`
 
