@@ -1,0 +1,136 @@
+{
+  "projectType": "saas",
+  "projectName": "KIBEN – SIFA",
+  "projectDescription": "SIFA (Sistema Integral de Farmacia y Administración) is a web-based healthcare management platform for nursing homes that tracks residents, prescriptions, medication administration, inventory, and caregiver assignments with role-based access control.",
+  "theme": "almond",
+  "primaryColor": "#2C7A7B",
+  "lightColor": "#E6F6F6",
+  "darkColor": "#1A4A4B",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Overview",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "architecture"
+            ]
+          },
+          {
+            "group": "User Roles",
+            "pages": [
+              "roles/overview",
+              "roles/admin",
+              "roles/doctor",
+              "roles/tens",
+              "roles/cuidadora"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Core Features",
+        "groups": [
+          {
+            "group": "Residents",
+            "pages": [
+              "features/residents/overview",
+              "features/residents/create",
+              "features/residents/monthly-report"
+            ]
+          },
+          {
+            "group": "Prescriptions & Medications",
+            "pages": [
+              "features/prescriptions/overview",
+              "features/prescriptions/create",
+              "features/prescriptions/medication-orders"
+            ]
+          },
+          {
+            "group": "Administration",
+            "pages": [
+              "features/administration/daily-schedule",
+              "features/administration/marking",
+              "features/administration/assignments"
+            ]
+          },
+          {
+            "group": "Inventory",
+            "pages": [
+              "features/inventory/stock-management",
+              "features/inventory/alerts"
+            ]
+          },
+          {
+            "group": "Notifications",
+            "pages": [
+              "features/notifications/telegram"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Deployment",
+        "groups": [
+          {
+            "group": "Setup",
+            "pages": [
+              "deployment/requirements",
+              "deployment/installation",
+              "deployment/configuration"
+            ]
+          },
+          {
+            "group": "Android App",
+            "pages": [
+              "deployment/android-app"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Endpoints",
+            "pages": [
+              "api/overview",
+              "api/products-suggest"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Multi-role access control (Admin/Enfermera, Doctor, TENS, Cuidadora)",
+    "Resident management with medical profiles and allergy tracking",
+    "Prescription and medication order management with scheduled doses",
+    "Daily medication administration tracking (Administered, Omitted, Rejected, Pending)",
+    "Inventory/stock management with configurable critical thresholds",
+    "Telegram bot notifications for critical stock levels",
+    "Monthly medication administration reports with PDF export",
+    "Caregiver-to-resident assignment system",
+    "Medication catalog with autocomplete from local, CIMA (AEMPS), and RxNorm APIs",
+    "Android companion app (APK)"
+  ],
+  "publicApiSurface": [
+    "GET /api/productos/suggest/?q=<query>&provider=LOCAL|CIMA|RXNORM|HYBRID",
+    "GET /residentes/ — List residents",
+    "POST /residentes/nuevo/ — Create resident",
+    "GET /residentes/<id>/ — Resident detail",
+    "POST /recetas/nueva/<residente_id>/ — Create prescription",
+    "POST /orden/nueva/<receta_id>/ — Add medication order",
+    "POST /administracion/quick/<admin_id>/ — Quick mark administration",
+    "POST /administracion/grupo/ — Bulk mark administration group",
+    "POST /orden/<id>/restock/ — Restock medication",
+    "GET /registro/<residente_id>/?year=&month= — Monthly report",
+    "GET /residentes/<id>/registro-mensual/pdf/ — Monthly report PDF",
+    "GET/POST /asignaciones/ — Caregiver assignments",
+    "POST /asignaciones/avisar-meds/ — Send Telegram medication alerts"
+  ]
+}
